@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('bulletins_paie', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('paie_id')->constrained('paies')->onDelete('cascade');
+            $table->foreignId('paies_id')->constrained('paies')->onDelete('cascade');
             $table->foreignId('employe_id')->constrained('employes')->restrictOnDelete();
             $table->foreignId('affectation_id')->constrained('affectations_marin')->restrictOnDelete();
             $table->foreignId('navire_id')->constrained('navires')->restrictOnDelete();
@@ -33,7 +33,7 @@ return new class extends Migration
             $table->enum('statut', ['brouillon', 'calcule', 'valide', 'cloture'])->default('brouillon');
             $table->timestamps();
 
-            $table->index(['paie_id', 'employe_id']);
+            $table->index(['paies_id', 'employe_id']);
         });
     }
 

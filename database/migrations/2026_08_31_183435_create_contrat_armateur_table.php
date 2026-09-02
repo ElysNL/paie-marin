@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('contrats_armateur', function (Blueprint $table) {
+        Schema::create('contrat_armateurs', function (Blueprint $table) {
             $table->id();
             $table->foreignId('armateur_id')->constrained('armateurs')->onDelete('cascade');
             $table->string('code', 20)->unique();

@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('periodes_paies', function (Blueprint $table) {
+        Schema::create('paies', function (Blueprint $table) {
             $table->id();
             $table->string('num_paie', 20)->unique();
             $table->string('libelle', 100);

@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('employe_id')->constrained('employes')->onDelete('cascade');
             $table->foreignId('navire_id')->constrained('navires')->onDelete('cascade');
             $table->foreignId('fonction_id')->constrained('fonctions')->restrictOnDelete();
-            $table->foreignId('contrat_armateur_id')->constrained('contrats_armateur')->restrictOnDelete();
+            $table->foreignId('contrat_armateur_id')->constrained('contrat_armateurs')->restrictOnDelete();
             $table->date('date_embt'); // embarquement
             $table->date('date_debt')->nullable(); // débarquement
             $table->decimal('taux_journalier', 12, 2);
