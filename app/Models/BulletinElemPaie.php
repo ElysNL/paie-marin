@@ -9,6 +9,8 @@ class BulletinElemPaie extends Model
 {
     use HasFactory;
 
+    protected $table = 'bulletins_elem_paie';
+
     protected $fillable = [
         'bulletin_id', 'elem_paie_id', 'quantite', 'unite',
         'base', 'taux', 'montant', 'devise_id', 'description', 'ordre'
@@ -24,7 +26,7 @@ class BulletinElemPaie extends Model
 
     public function bulletin()
     {
-        return $this->belongsTo(BulletinPaie::class);
+        return $this->belongsTo(BulletinPaie::class, 'bulletin_id');
     }
 
     public function elemPaie()

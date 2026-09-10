@@ -9,7 +9,7 @@ class Avance extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['employer_id', 'date_avance', 'montant', 'devise_id', 'motif', 'statut', 'solde'];
+    protected $fillable = ['employe_id', 'date_avance', 'montant', 'devise_id', 'motif', 'statut', 'solde'];
 
     protected $casts = [
         'date_avance' => 'date',
@@ -17,7 +17,7 @@ class Avance extends Model
         'solde' => 'decimal:2',
     ];
 
-    public function employer()
+    public function employe()
     {
         return $this->belongsTo(Employe::class);
     }

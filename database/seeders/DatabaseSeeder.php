@@ -27,6 +27,7 @@ class DatabaseSeeder extends Seeder
             CotisationSeeder::class,
             IgrParametreSeeder::class,
             TauxChangeSeeder::class,
+            AdminUserSeeder::class,
           ]);
     }
 }

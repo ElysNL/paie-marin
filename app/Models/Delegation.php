@@ -10,7 +10,7 @@ class Delegation extends Model
     use HasFactory;
 
     protected $fillable = [
-        'employer_id', 'beneficiaire', 'montant', 'devise_id',
+        'employe_id', 'beneficiaire', 'montant', 'devise_id',
         'date_debut', 'date_fin', 'frequence', 'statut'
     ];
 
@@ -20,7 +20,7 @@ class Delegation extends Model
         'date_fin' => 'date',
     ];
 
-    public function employer()
+    public function employe()
     {
         return $this->belongsTo(Employe::class);
     }

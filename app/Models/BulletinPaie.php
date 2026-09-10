@@ -9,6 +9,8 @@ class BulletinPaie extends Model
 {
     use HasFactory;
 
+    protected $table = 'bulletins_paie';
+
     protected $fillable = [
         'paie_id', 'employe_id', 'affectation_id', 'navire_id',
         'devise_source_id', 'devise_paiement_id',
@@ -64,26 +66,26 @@ class BulletinPaie extends Model
 
     public function jours()
     {
-        return $this->hasMany(BulletinJour::class);
+        return $this->hasMany(BulletinJour::class, 'bulletin_id');
     }
 
     public function elements()
     {
-        return $this->hasMany(BulletinElemPaie::class);
+        return $this->hasMany(BulletinElemPaie::class, 'bulletin_id');
     }
 
     public function cotisations()
     {
-        return $this->hasMany(BulletinCotisation::class);
+        return $this->hasMany(BulletinCotisation::class, 'bulletin_id');
     }
 
     public function remboursementsAvances()
     {
-        return $this->hasMany(RemboursementAvance::class);
+        return $this->hasMany(RemboursementAvance::class, 'bulletin_id');
     }
 
     public function delegations()
     {
-        return $this->hasMany(BulletinDelegation::class);
+        return $this->hasMany(BulletinDelegation::class, 'bulletin_id');
     }
 }

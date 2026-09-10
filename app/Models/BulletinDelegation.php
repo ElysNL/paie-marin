@@ -9,13 +9,15 @@ class BulletinDelegation extends Model
 {
     use HasFactory;
 
+    protected $table = 'bulletins_delegation';
+
     protected $fillable = ['bulletin_id', 'delegation_id', 'montant'];
 
     protected $casts = ['montant' => 'decimal:2'];
 
     public function bulletin()
     {
-        return $this->belongsTo(BulletinPaie::class);
+        return $this->belongsTo(BulletinPaie::class, 'bulletin_id');
     }
 
     public function delegation()

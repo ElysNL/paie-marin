@@ -9,6 +9,8 @@ class BulletinJour extends Model
 {
     use HasFactory;
 
+    protected $table = 'bulletins_jour';
+
     protected $fillable = ['bulletin_id', 'date', 'type_jour', 'nombre', 'taux', 'montant'];
 
     protected $casts = [
@@ -20,6 +22,6 @@ class BulletinJour extends Model
 
     public function bulletin()
     {
-        return $this->belongsTo(BulletinPaie::class);
+        return $this->belongsTo(BulletinPaie::class, 'bulletin_id');
     }
 }

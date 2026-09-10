@@ -9,6 +9,8 @@ class BulletinCotisation extends Model
 {
     use HasFactory;
 
+    protected $table = 'bulletin_cotisation';
+
     protected $fillable = [
         'bulletin_id', 'cotisation_id', 'assiette',
         'taux_salarial', 'montant_salarial',
@@ -25,7 +27,7 @@ class BulletinCotisation extends Model
 
     public function bulletin()
     {
-        return $this->belongsTo(BulletinPaie::class);
+        return $this->belongsTo(BulletinPaie::class, 'bulletin_id');
     }
 
     public function cotisation()

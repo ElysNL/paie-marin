@@ -12,11 +12,12 @@ class Employe extends Model
     protected $fillable = [
         'matricule', 'nom', 'prenom', 'date_naissance', 'lieu_naissance',
         'nationalite_id', 'adresse', 'telephone', 'email', 'cin',
-        'banque_id', 'compte_bancaire', 'date_embauche', 'actif'
+        'banque_id', 'compte_bancaire', 'date_embauche', 'nbre_charges', 'actif'
     ];
 
     protected $casts = [
         'actif' => 'boolean',
+        'nbre_charges' => 'integer',
         'date_naissance' => 'date',
         'date_embauche' => 'date',
     ];

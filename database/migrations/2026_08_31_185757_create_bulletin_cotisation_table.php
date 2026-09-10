@@ -13,6 +13,13 @@ return new class extends Migration
     {
         Schema::create('bulletin_cotisation', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('bulletin_id')->constrained('bulletins_paie')->onDelete('cascade');
+            $table->foreignId('cotisation_id')->constrained('cotisations')->restrictOnDelete();
+            $table->decimal('assiette', 12, 2);
+            $table->decimal('taux_salarial', 8, 4)->nullable();
+            $table->decimal('montant_salarial', 12, 2)->nullable();
+            $table->decimal('taux_patronal', 8, 4)->nullable();
+            $table->decimal('montant_patronal', 12, 2)->nullable();
             $table->timestamps();
         });
     }

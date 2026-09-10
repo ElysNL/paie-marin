@@ -31,6 +31,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('contrat_armateur');
+        Schema::dropIfExists('contrat_armateurs');
     }
 };

@@ -17,6 +17,7 @@ return new class extends Migration
             $table->foreignId('devise_cible_id')->constrained('devises')->restrictOnDelete();
             $table->decimal('taux', 14, 6);
             $table->date('date_taux');
+            $table->string('source', 100)->nullable();
             $table->timestamps();
 
             $table->unique(['devise_source_id', 'devise_cible_id', 'date_taux']);
@@ -28,6 +29,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('taux_change');
+        Schema::dropIfExists('taux_changes');
     }
 };

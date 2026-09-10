@@ -9,6 +9,8 @@ class RemboursementAvance extends Model
 {
     use HasFactory;
 
+    protected $table = 'remboursements_avance';
+
     protected $fillable = ['avance_id', 'bulletin_id', 'montant'];
 
     protected $casts = ['montant' => 'decimal:2'];
@@ -20,6 +22,6 @@ class RemboursementAvance extends Model
 
     public function bulletin()
     {
-        return $this->belongsTo(BulletinPaie::class);
+        return $this->belongsTo(BulletinPaie::class, 'bulletin_id');
     }
 }
