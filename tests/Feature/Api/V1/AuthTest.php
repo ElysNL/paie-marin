@@ -30,11 +30,17 @@ class AuthTest extends TestCase
     /**
      * Récupère un cookie CSRF frais, comme le fait le navigateur via la
      * route /sanctum/csrf-cookie avant la connexion.
+     *
+     * Le navigateur réenvoie la VALEUR CHIFFRÉE du cookie XSRF-TOKEN dans le
+     * header X-XSRF-TOKEN. Or Laravel déchiffre ce header (PreventRequestForgery
+     * -> getTokenFromRequest). On renvoie donc la valeur chiffrée du cookie (et
+     * non le jeton brut) pour que la validation CSRF aboutisse.
      */
     private function xsrfToken(): string
     {
-        $this->get('/sanctum/csrf-cookie');
-        return csrf_token();
+        return $this->get('/sanctum/csrf-cookie')
+            ->getCookie('XSRF-TOKEN', false)
+            ->getValue();
     }
 
     private function login(): void
@@ -87,8 +93,11 @@ class AuthTest extends TestCase
         $this->creerUser();
         $this->login();
 
-        $this->postJson('/api/v1/auth/logout')
-            ->assertOk()
+        // Le logout est un POST soumis au CSRF : on renvoie un token frais
+        // (la session a été régénérée au login, le jeton a donc changé).
+        $this->postJson('/api/v1/auth/logout', [], [
+            'X-XSRF-TOKEN' => $this->xsrfToken(),
+        ])->assertOk()
             ->assertJsonPath('message', 'Déconnecté avec succès.');
 
         $this->getJson('/api/v1/auth/me')->assertUnauthorized();

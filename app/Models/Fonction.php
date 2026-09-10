@@ -17,4 +17,10 @@ class Fonction extends Model
     {
         return $this->hasMany(AffectationMarin::class);
     }
+
+    // Scope
+    public function scopeActif($query)
+    {
+        return $query->where('actif', true);
+    }
 }

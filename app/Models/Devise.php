@@ -46,5 +46,11 @@ class Devise extends Model
         return $this->hasMany(Delegation::class);
     }
 
+    // Scope
+    public function scopeActif($query)
+    {
+        return $query->where('actif', true);
+    }
+
     // etc. pour d'autres relations (bulletins, etc.)
 }
