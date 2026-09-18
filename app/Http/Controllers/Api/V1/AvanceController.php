@@ -17,10 +17,10 @@ class AvanceController extends Controller
         $query = Avance::with(['employe', 'devise'])
             ->orderBy('date_avance', 'desc');
 
-        if ($request->has('employe_id')) {
+        if ($request->filled('employe_id')) {
             $query->where('employe_id', $request->employe_id);
         }
-        if ($request->has('statut')) {
+        if ($request->filled('statut')) {
             $query->where('statut', $request->statut);
         }
 

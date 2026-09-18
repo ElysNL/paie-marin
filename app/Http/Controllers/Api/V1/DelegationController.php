@@ -17,7 +17,7 @@ class DelegationController extends Controller
         $query = Delegation::with(['employe', 'devise'])
             ->orderBy('date_debut', 'desc');
 
-        if ($request->has('employe_id')) {
+        if ($request->filled('employe_id')) {
             $query->where('employe_id', $request->employe_id);
         }
 

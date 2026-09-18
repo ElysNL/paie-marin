@@ -19,10 +19,10 @@ class BulletinController extends Controller
         $this->authorize('viewAny', BulletinPaie::class);
         $query = BulletinPaie::with(['employe', 'navire', 'paie']);
 
-        if ($request->has('employe_id')) {
+        if ($request->filled('employe_id')) {
             $query->where('employe_id', $request->employe_id);
         }
-        if ($request->has('paie_id')) {
+        if ($request->filled('paie_id')) {
             $query->where('paie_id', $request->paie_id);
         }
 
