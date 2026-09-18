@@ -12,25 +12,19 @@ class CalculateurDePaie
     {
         DB::beginTransaction();
         try {
-            // 1. Créer le bulletin (initial) en brouillon
             $bulletin = $this->createBulletin($paie, $affectation);
 
-            // 2. Calculer les salaires calculables (jours de la période)
             $jours = $this->calculateDays($paie, $affectation, $bulletin);
             $totalJours = array_sum(array_column($jours, 'nombre'));
             $bulletin->total_jours = $totalJours;
 
-            // 3. Salaire de base (employé choisi)
             $tauxJournalier = $affectation->taux_journalier;
             $salaireBase = $tauxJournalier * $totalJours;
             $this->addGain($bulletin, 'SAL_BASE', $salaireBase);
 
-            // 4. Insérer les suppléments (primes / retenues)
             $this->addGain($bulletin, 'PRIME_NAVIGATION', config('paie.prime_navigation', 5000));
 
-            // 5. Retirer les cotisations salariales
-            // 6. BRUT = somme des gains (base + suppléments)
-            // Invalider la relation en mémoire pour forcer le rechargement depuis la DB
+            // Recharger depuis la DB pour garantir la cohérence des éléments
             $bulletin->unsetRelation('elements');
             $bulletin->load('elements.elemPaie');
             $brut = $bulletin->elements->where('elemPaie.type', 'GAIN')->sum('montant');
@@ -40,17 +34,14 @@ class CalculateurDePaie
             $cotisationsSalariales = $this->calculateCotisations($bulletin, $brut, 'salarial');
             $bulletin->total_cotisations_salariales = $cotisationsSalariales;
 
-            // Base imposable = BRUT (les cotisations salariales sont déjà déduites pour l'IGR
-            // selon le régime malgache : assiette IGR = revenu brut imposable).
+            // Assiette IGR = revenu brut (régime malgache : cotisations non déductibles)
             $baseImposable = $brut;
 
-            // 7-8. Calculer l'IGR puis retirer l'abattement sur l'IGR
             $igrBrut = $this->calculateIGR($baseImposable);
             $abattement = $this->abattementPour($affectation->employe);
             $igrNet = max(0, $igrBrut - $abattement);
             $this->addRetenue($bulletin, 'IGR', $igrNet);
 
-            // 9. Délégations (autres retenues)
             $delegations = $this->getActiveDelegations($affectation->employe_id, $paie->date_debut);
             foreach ($delegations as $del) {
                 $this->addRetenue($bulletin, 'DELEGATION', $del->montant);
@@ -60,22 +51,16 @@ class CalculateurDePaie
                 ]);
             }
 
-            // Total retenues = cotisations salariales + IGR net + délégations / retenues saisies
-            // Recharger après ajout IGR + délégations pour inclure toutes les retenues
+            // Retenues (IGR, délégations) + cotisations salariales
             $bulletin->unsetRelation('elements');
             $bulletin->load('elements.elemPaie');
-            // On ne somme que les éléments de type RETENUE (IGR, DELEGATION, AVANCE, etc.)
-            // Les cotisations (CNAPS, SMIDS) sont dans la table séparée bulletins_cotisations
-            // et comptées via total_cotisations_salariales. Ne JAMAIS créer d'ElemPaie de type
-            // RETENUE avec le même code qu'une Cotisation → double comptage.
+            // Retenues dans elements (type=RETENUE) vs cotisations dans bulletins_cotisations
             $totalRetenues = $bulletin->elements->where('elemPaie.type', 'RETENUE')->sum('montant')
                              + $bulletin->total_cotisations_salariales;
             $bulletin->total_retenues = $totalRetenues;
 
-            // NET = BRUT - total retenues
             $net = $brut - $totalRetenues;
 
-            // 10. Retirer les avances -> NET à payer
             $avances = $this->getActiveAdvances($affectation->employe_id, $paie->date_debut, $paie->date_fin);
             $montantAvances = 0;
             foreach ($avances as $avance) {
@@ -88,15 +73,12 @@ class CalculateurDePaie
             $netAPayer = $net - $montantAvances;
             $bulletin->net_a_payer = $netAPayer;
 
-            // 11. Cotisations patronales (coût employeur)
             $cotisationsPatronales = $this->calculateCotisations($bulletin, $brut, 'patronal');
             $bulletin->total_cotisations_patronales = $cotisationsPatronales;
             $bulletin->cout_total_employeur = $brut + $cotisationsPatronales;
 
-            // Taux de change (figer celui de la date de fin de période)
             $this->freezeTauxChange($bulletin, $paie, $affectation);
 
-            // Créer le bulletin final (statut calculé)
             $bulletin->statut = 'calcule';
             $bulletin->save();
 
@@ -108,8 +90,6 @@ class CalculateurDePaie
             throw $e;
         }
     }
-
-    // Méthodes internes ...
 
     private function createBulletin($paie, $affectation)
     {
@@ -137,7 +117,6 @@ class CalculateurDePaie
             'montant' => 0,
         ]];
 
-        // Persister les jours du bulletin
         foreach ($days as $day) {
             $bulletin->jours()->create($day);
         }
@@ -218,8 +197,7 @@ class CalculateurDePaie
     }
 
     /**
-     * Abattement = nombre de charges × montant par charge (config externe).
-     * Retiré sur le montant de l'IGR.
+     * Abattement IGR = charges × montant/charge (config paie.abattement_par_charge).
      */
     public function abattementPour($employe)
     {

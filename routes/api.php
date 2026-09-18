@@ -23,18 +23,16 @@ use App\Http\Controllers\Api\V1\{
 };
 
 Route::prefix('v1')->group(function () {
-    // Publique
     Route::post('auth/login', [AuthController::class, 'login'])
         ->middleware('throttle:5,1');
 
-    // Protégé (session cookies)
     Route::middleware('auth')->group(function () {
-        // Authentification + dashboard — tous les rôles authentifiés
+        // Tous les rôles authentifiés
         Route::get('auth/me', [AuthController::class, 'me']);
         Route::post('auth/logout', [AuthController::class, 'logout']);
         Route::get('dashboard', [DashboardController::class, 'index']);
 
-        // Référentiels : admin + rh
+        // admin, rh
         Route::middleware('role:admin,rh')->group(function () {
             Route::apiResource('pays', PaysController::class);
             Route::apiResource('devises', DeviseController::class);
@@ -48,19 +46,18 @@ Route::prefix('v1')->group(function () {
             Route::apiResource('employes', EmployeController::class);
         });
 
-        // Affectations : admin + rh + paie
+        // admin, rh, paie
         Route::middleware('role:admin,rh,paie')->group(function () {
             Route::apiResource('affectations', AffectationController::class);
         });
 
-        // Paie : admin + paie
+        // admin, paie
         Route::middleware('role:admin,paie')->group(function () {
             Route::apiResource('paies', PaieController::class);
             Route::apiResource('bulletins', BulletinController::class)->only(['index', 'show', 'destroy']);
             Route::apiResource('avances', AvanceController::class);
             Route::apiResource('delegations', DelegationController::class);
 
-            // Actions paie
             Route::post('paies/{paie}/calculer', [PaieController::class, 'calculer']);
             Route::get('paies/{paie}/statut-calcul', [PaieController::class, 'statutCalcul']);
             Route::get('paies/{paie}/navires-eligibles', [PaieController::class, 'naviresEligibles']);
@@ -69,13 +66,12 @@ Route::prefix('v1')->group(function () {
             Route::get('paies/{paie}/eligibles', [PaieController::class, 'eligibles']);
         });
 
-        // Utilisateurs : admin uniquement
+        // admin
         Route::middleware('role:admin')->group(function () {
             Route::apiResource('users', UserController::class)->except(['edit', 'create']);
             Route::post('users/{user}/toggle-actif', [UserController::class, 'toggleActif']);
         });
 
-        // Exports : tous les rôles authentifiés
         Route::get('bulletins/{bulletin}/pdf', [BulletinController::class, 'exportPdf']);
         Route::get('bulletins/{bulletin}/excel', [BulletinController::class, 'exportExcel']);
     });

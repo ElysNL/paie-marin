@@ -13,7 +13,6 @@ class ValidateSession
         $user = $request->user();
 
         if ($user) {
-            // 1. Compte verrouillé → déconnexion
             if ($user->isLocked()) {
                 auth()->guard('web')->logout();
                 $request->session()->invalidate();
@@ -24,7 +23,7 @@ class ValidateSession
                 ], 423);
             }
 
-            // 2. Mot de passe changé depuis la création de la session → déconnexion
+            // Invalider la session si le mot de passe a changé depuis la connexion
             $sessionPasswordHash = $request->session()->get('password_hash');
             if ($sessionPasswordHash && $sessionPasswordHash !== $user->password) {
                 auth()->guard('web')->logout();

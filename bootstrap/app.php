@@ -13,8 +13,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // Permet l'authentification par session (cookies) sur les routes API
-        // de la SPA (état dit "stateful" pour Sanctum).
+        // Sanctum stateful : authentification SPA via cookies de session
         $middleware->api(append: [
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             \App\Http\Middleware\ValidateSession::class,

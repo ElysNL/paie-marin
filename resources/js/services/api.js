@@ -9,10 +9,9 @@ const apiClient = axios.create({
         'Content-Type': 'application/json',
         'Accept': 'application/json',
     },
-    withCredentials: true, // pour les cookies de session
+    withCredentials: true,
 });
 
-// Intercepteur pour gérer les erreurs globalement
 apiClient.interceptors.response.use(
     response => response,
     async error => {
@@ -21,9 +20,7 @@ apiClient.interceptors.response.use(
             const { status, data } = error.response;
 
             if (status === 401) {
-                // Session expirée ou non authentifié : on nettoie l'état et on
-                // redirige vers la page de connexion (hors /auth/me utilisé à
-                // l'initialisation pour ne pas boucler).
+                // Ignorer /auth/me pour éviter la boucle de redirection
                 const isAuthCheck = error.config?.url?.includes('/auth/me');
                 if (!isAuthCheck && typeof window !== 'undefined') {
                     const auth = useAuthStore();
@@ -34,7 +31,6 @@ apiClient.interceptors.response.use(
                 }
                 notify('Session expirée. Veuillez vous reconnecter.');
             } else if (status === 423) {
-                // Compte verrouillé
                 const auth = useAuthStore();
                 auth.user = null;
                 if (router.currentRoute.value.path !== '/login') {
@@ -44,7 +40,6 @@ apiClient.interceptors.response.use(
             } else if (status === 403) {
                 notify('Action non autorisée.');
             } else if (status === 422) {
-                // Les erreurs de validation sont gérées localement par les formulaires.
                 if (typeof data.message === 'string') {
                     notify(data.message);
                 }

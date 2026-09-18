@@ -12,7 +12,8 @@ use Illuminate\Support\Facades\Hash;
 class AuthController extends Controller
 {
     /**
-     * Connexion avec session (cookie) via le garde "web".
+     * Connexion via session cookies (Sanctum stateful).
+     * Verrouillage après 5 échecs consécutifs (15 min).
      */
     public function login(Request $request): JsonResponse
     {
@@ -46,7 +47,7 @@ class AuthController extends Controller
 
         auth()->login($user);
 
-        // Stocker le hash du mot de passe en session pour détecter les changements
+        // Détecter les changements de mot de passe via ValidateSession middleware
         $request->session()->put('password_hash', $user->password);
 
         return response()->json([
@@ -61,9 +62,6 @@ class AuthController extends Controller
         ]);
     }
 
-    /**
-     * Utilisateur connecté.
-     */
     public function me(Request $request): JsonResponse
     {
         return response()->json([
@@ -71,9 +69,6 @@ class AuthController extends Controller
         ]);
     }
 
-    /**
-     * Déconnexion : invalide la session.
-     */
     public function logout(Request $request): JsonResponse
     {
         Auth::guard('web')->logout();

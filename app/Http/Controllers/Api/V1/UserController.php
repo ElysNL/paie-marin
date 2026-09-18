@@ -39,7 +39,7 @@ class UserController extends Controller
     {
         $this->authorize('create', User::class);
         $validated = $request->validated();
-        // Le cast 'hashed' sur User applique Hash::make() automatiquement
+        // Cast 'hashed' sur User applique Hash::make() automatiquement
         $validated['email_verified_at'] = now();
 
         $user = User::create($validated);
@@ -58,11 +58,10 @@ class UserController extends Controller
         $this->authorize('update', $user);
         $validated = $request->validated();
 
-        if (!empty($validated['password'])) {
-            // Le cast 'hashed' sur User applique Hash::make() automatiquement
-        } else {
+        if (empty($validated['password'])) {
             unset($validated['password']);
         }
+        // password reste dans validated si non vide → cast 'hashed' le hash
 
         $user->update($validated);
 

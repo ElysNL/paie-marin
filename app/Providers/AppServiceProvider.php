@@ -25,7 +25,7 @@ class AppServiceProvider extends ServiceProvider
     {
         Gate::policy(User::class, UserPolicy::class);
 
-        // Referential models share the same policy (admin/rh can CRUD, anyone can view)
+        // Référentiels partagent ReferentielPolicy (admin/rh CRUD, lecture pour tous)
         Gate::policy(Pays::class, ReferentielPolicy::class);
         Gate::policy(Devise::class, ReferentielPolicy::class);
         Gate::policy(Fonction::class, ReferentielPolicy::class);
