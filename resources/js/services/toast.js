@@ -4,13 +4,15 @@ const state = reactive({
     toasts: [],
 });
 
+const timers = new Map();
 let nextId = 1;
 
 function add(message, type = 'success', timeout = 4000) {
     const id = nextId++;
     state.toasts.push({ id, message, type });
     if (timeout > 0) {
-        setTimeout(() => remove(id), timeout);
+        const timer = setTimeout(() => remove(id), timeout);
+        timers.set(id, timer);
     }
     return id;
 }
@@ -18,6 +20,10 @@ function add(message, type = 'success', timeout = 4000) {
 function remove(id) {
     const index = state.toasts.findIndex(t => t.id === id);
     if (index !== -1) state.toasts.splice(index, 1);
+    if (timers.has(id)) {
+        clearTimeout(timers.get(id));
+        timers.delete(id);
+    }
 }
 
 export function useToasts() {
