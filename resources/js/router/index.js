@@ -36,6 +36,7 @@ import BanqueList from '@/components/Banques/List.vue';
 import BanqueForm from '@/components/Banques/Form.vue';
 import UserList from '@/components/Users/List.vue';
 import UserForm from '@/components/Users/Form.vue';
+import Forbidden from '@/components/Forbidden.vue';
 
 const routes = [
   { path: '/login', name: 'login', component: Login, meta: { public: true, title: 'Connexion' } },
@@ -111,6 +112,8 @@ const routes = [
       { path: 'utilisateurs', component: UserList, meta: { title: 'Utilisateurs', roles: ['admin'] } },
       { path: 'utilisateurs/create', component: UserForm, meta: { title: 'Nouvel utilisateur', roles: ['admin'] } },
       { path: 'utilisateurs/:id/edit', component: UserForm, props: true, meta: { title: "Modifier l'utilisateur", roles: ['admin'] } },
+
+      { path: '403', component: Forbidden, meta: { title: 'Accès interdit', public: true } },
     ],
   },
 ];
@@ -139,7 +142,7 @@ router.beforeEach(async (to) => {
 
   if (to.meta.roles && to.meta.roles.length > 0) {
     if (!auth.hasRole(...to.meta.roles)) {
-      return { path: '/dashboard' };
+      return { path: '/403' };
     }
   }
 });
