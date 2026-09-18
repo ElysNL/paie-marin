@@ -37,7 +37,7 @@ class UserController extends Controller
     public function store(StoreUserRequest $request): JsonResponse
     {
         $validated = $request->validated();
-        $validated['password'] = Hash::make($validated['password']);
+        // Le cast 'hashed' sur User applique Hash::make() automatiquement
         $validated['email_verified_at'] = now();
 
         $user = User::create($validated);
@@ -55,7 +55,7 @@ class UserController extends Controller
         $validated = $request->validated();
 
         if (!empty($validated['password'])) {
-            $validated['password'] = Hash::make($validated['password']);
+            // Le cast 'hashed' sur User applique Hash::make() automatiquement
         } else {
             unset($validated['password']);
         }
