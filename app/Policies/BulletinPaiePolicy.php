@@ -21,8 +21,8 @@ class BulletinPaiePolicy
         return in_array($user->role, ['admin', 'paie']);
     }
 
-    public function export(User $user): bool
+    public function export(User $user, BulletinPaie $bulletin): bool
     {
-        return true;
+        return in_array($user->role, ['admin', 'rh', 'paie']);
     }
 }
