@@ -25,6 +25,7 @@ export const useEmployeStore = defineStore('employes', {
         },
         async createEmploye(data) {
             const response = await apiClient.post('/employes', data);
+            // EmployeResource (single) retourne { id, nom, ... } sans wrapper 'data'
             this.employes.push(response.data);
             return response.data;
         },
