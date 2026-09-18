@@ -26,6 +26,7 @@ class PaieController extends Controller
 
     public function index()
     {
+        $this->authorize('viewAny', Paie::class);
         $paies = Paie::withCount('bulletins')->orderBy('created_at', 'desc')->paginate(50);
         return PaieResource::collection($paies);
     }

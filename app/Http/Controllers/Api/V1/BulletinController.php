@@ -16,6 +16,7 @@ class BulletinController extends Controller
 {
     public function index(Request $request)
     {
+        $this->authorize('viewAny', BulletinPaie::class);
         $query = BulletinPaie::with(['employe', 'navire', 'paie']);
 
         if ($request->has('employe_id')) {
