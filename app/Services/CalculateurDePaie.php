@@ -64,6 +64,10 @@ class CalculateurDePaie
             // Recharger après ajout IGR + délégations pour inclure toutes les retenues
             $bulletin->unsetRelation('elements');
             $bulletin->load('elements.elemPaie');
+            // On ne somme que les éléments de type RETENUE (IGR, DELEGATION, AVANCE, etc.)
+            // Les cotisations (CNAPS, SMIDS) sont dans la table séparée bulletins_cotisations
+            // et comptées via total_cotisations_salariales. Ne JAMAIS créer d'ElemPaie de type
+            // RETENUE avec le même code qu'une Cotisation → double comptage.
             $totalRetenues = $bulletin->elements->where('elemPaie.type', 'RETENUE')->sum('montant')
                              + $bulletin->total_cotisations_salariales;
             $bulletin->total_retenues = $totalRetenues;
