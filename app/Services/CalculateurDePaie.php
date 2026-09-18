@@ -74,12 +74,11 @@ class CalculateurDePaie
             // 10. Retirer les avances -> NET à payer
             $avances = $this->getActiveAdvances($affectation->employe_id, $paie->date_debut, $paie->date_fin);
             $montantAvances = 0;
-            if ($avances->isNotEmpty()) {
-                $montantAvances = $avances->first()->solde;
-                // Enregistrer le remboursement de l'avance
+            foreach ($avances as $avance) {
+                $montantAvances += $avance->solde;
                 $bulletin->remboursementsAvances()->create([
-                    'avance_id' => $avances->first()->id,
-                    'montant' => $montantAvances
+                    'avance_id' => $avance->id,
+                    'montant' => $avance->solde,
                 ]);
             }
             $netAPayer = $net - $montantAvances;
