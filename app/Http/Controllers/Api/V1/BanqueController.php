@@ -3,27 +3,23 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreBanqueRequest;
+use App\Http\Requests\UpdateBanqueRequest;
+use App\Http\Resources\BanqueResource;
 use App\Models\Banque;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class BanqueController extends Controller
 {
-    public function index(): JsonResponse
+    public function index()
     {
-        return response()->json(Banque::orderBy('nom')->get());
+        return BanqueResource::collection(Banque::orderBy('nom')->get());
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreBanqueRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'code' => 'required|string|max:20|unique:banques',
-            'nom' => 'required|string|max:150',
-            'pays_id' => 'nullable|exists:pays,id',
-            'actif' => 'sometimes|boolean',
-        ]);
-
-        $banque = Banque::create($validated);
+        $this->authorize('create', [Banque::class]);
+        $banque = Banque::create($request->validated());
         return response()->json($banque, 201);
     }
 
@@ -32,21 +28,16 @@ class BanqueController extends Controller
         return response()->json($banque);
     }
 
-    public function update(Request $request, Banque $banque): JsonResponse
+    public function update(UpdateBanqueRequest $request, Banque $banque): JsonResponse
     {
-        $validated = $request->validate([
-            'code' => 'required|string|max:20|unique:banques,code,' . $banque->id,
-            'nom' => 'required|string|max:150',
-            'pays_id' => 'nullable|exists:pays,id',
-            'actif' => 'sometimes|boolean',
-        ]);
-
-        $banque->update($validated);
+        $this->authorize('update', [$banque]);
+        $banque->update($request->validated());
         return response()->json($banque);
     }
 
     public function destroy(Banque $banque): JsonResponse
     {
+        $this->authorize('delete', [$banque]);
         $banque->delete();
         return response()->json(null, 204);
     }

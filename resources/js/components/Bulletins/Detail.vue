@@ -2,184 +2,116 @@
   <div>
     <Breadcrumb :items="crumbs" />
 
-    <div v-if="store.loading && !bulletin" class="py-8 text-center text-gray-500">Chargement…</div>
+    <AppLoading v-if="store.loading && !bulletin" message="Chargement du bulletin…" />
 
     <template v-else-if="bulletin">
       <PageHeader :title="`Bulletin — ${bulletin.employe?.nom} ${bulletin.employe?.prenom}`">
         <template #action>
-          <button @click="downloadPdf" class="px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition text-sm">
-            Télécharger PDF
-          </button>
-          <button @click="downloadExcel" class="px-3 py-2 bg-green-700 text-white rounded hover:bg-green-800 transition text-sm">
-            Télécharger Excel
-          </button>
+          <AppButton variant="danger" @click="downloadPdf">Télécharger PDF</AppButton>
+          <AppButton variant="secondary" @click="downloadExcel">Télécharger Excel</AppButton>
         </template>
       </PageHeader>
 
-      <div class="mb-6 rounded border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
-        <p>{{ bulletin.paie?.libelle }} · {{ bulletin.paie?.periode }} ·
+      <AppCard class="mb-6">
+        <p class="text-sm text-on-surface-variant">
+          {{ bulletin.paie?.libelle }} · {{ bulletin.paie?.periode }} ·
           Navire : {{ bulletin.navire?.nom }} ·
           {{ formatDate(bulletin.paie?.date_debut) }} → {{ formatDate(bulletin.paie?.date_fin) }}
         </p>
-        <p v-if="bulletin.affectation?.fonction" class="mt-1">
-          Fonction : {{ bulletin.affectation.fonction.nom }}
+        <p v-if="bulletin.affectation?.fonction" class="mt-1 text-sm text-on-surface-variant">
+          Fonction : {{ bulletin.affectation.fonction.libelle }}
         </p>
-        <p v-if="bulletin.affectation?.contrat_armateur?.devise" class="mt-1">
+        <p v-if="bulletin.affectation?.contrat_armateur?.devise" class="mt-1 text-sm text-on-surface-variant">
           Devise du contrat : {{ bulletin.affectation.contrat_armateur.devise.code }}
         </p>
-      </div>
+      </AppCard>
 
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div class="lg:col-span-2 space-y-6">
-          <section v-if="bulletin.jours?.length">
-            <h2 class="text-lg font-semibold mb-2">Jours de travail</h2>
-            <div class="overflow-x-auto">
-              <table class="w-full border-collapse text-sm">
-                <thead>
-                  <tr class="bg-gray-100 text-left">
-                    <th class="p-2 border">Date</th>
-                    <th class="p-2 border">Type</th>
-                    <th class="p-2 border">Nombre</th>
-                    <th class="p-2 border">Taux</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="j in bulletin.jours" :key="j.id">
-                    <td class="p-2 border">{{ formatDate(j.date) }}</td>
-                    <td class="p-2 border">{{ j.type_jour }}</td>
-                    <td class="p-2 border">{{ j.nombre }}</td>
-                    <td class="p-2 border text-right">{{ formatMoney(j.taux) }}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </section>
+      <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div class="space-y-6 lg:col-span-2">
+          <AppCard v-if="bulletin.jours?.length">
+            <h2 class="mb-2 text-lg font-semibold">Jours de travail</h2>
+            <AppTable :columns="joursColumns" :rows="bulletin.jours">
+              <template #cell(date)="{ row }">{{ formatDate(row.date) }}</template>
+              <template #cell(type_jour)="{ row }">{{ row.type_jour }}</template>
+              <template #cell(nombre)="{ row }">{{ row.nombre }}</template>
+              <template #cell(taux)="{ row }" class="text-right">{{ formatMoney(row.taux) }}</template>
+            </AppTable>
+          </AppCard>
 
-          <section>
-            <h2 class="text-lg font-semibold mb-2">Brut et retenues</h2>
-            <div class="overflow-x-auto">
-              <table class="w-full border-collapse text-sm">
-                <thead>
-                  <tr class="bg-gray-100 text-left">
-                    <th class="p-2 border">Élément</th>
-                    <th class="p-2 border">Code</th>
-                    <th class="p-2 border">Type</th>
-                    <th class="p-2 border">Description</th>
-                    <th class="p-2 border text-right">Montant</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="e in bulletin.elements" :key="e.id">
-                    <td class="p-2 border">{{ e.elem_paie?.libelle }}</td>
-                    <td class="p-2 border">{{ e.elem_paie?.code }}</td>
-                    <td class="p-2 border">{{ e.elem_paie?.type }}</td>
-                    <td class="p-2 border">{{ e.description || '—' }}</td>
-                    <td class="p-2 border text-right">{{ formatMoney(e.montant) }}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </section>
+          <AppCard>
+            <h2 class="mb-2 text-lg font-semibold">Brut et retenues</h2>
+            <AppTable :columns="elementsColumns" :rows="bulletin.elements">
+              <template #cell(elem_paie)="{ row }">{{ row.elem_paie?.libelle }}</template>
+              <template #cell(code)="{ row }">{{ row.elem_paie?.code }}</template>
+              <template #cell(type)="{ row }">{{ row.elem_paie?.type }}</template>
+              <template #cell(description)="{ row }">{{ row.description || '—' }}</template>
+              <template #cell(montant)="{ row }" class="text-right">{{ formatMoney(row.montant) }}</template>
+            </AppTable>
+          </AppCard>
 
-          <section v-if="bulletin.cotisations?.length">
-            <h2 class="text-lg font-semibold mb-2">Cotisations</h2>
-            <div class="overflow-x-auto">
-              <table class="w-full border-collapse text-sm">
-                <thead>
-                  <tr class="bg-gray-100 text-left">
-                    <th class="p-2 border">Cotisation</th>
-                    <th class="p-2 border">Part salariale</th>
-                    <th class="p-2 border">Part patronale</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="c in bulletin.cotisations" :key="c.id">
-                    <td class="p-2 border">{{ c.cotisation?.nom }}</td>
-                    <td class="p-2 border text-right">{{ formatMoney(c.montant_salarial) }}</td>
-                    <td class="p-2 border text-right">{{ formatMoney(c.montant_patronal) }}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </section>
+          <AppCard v-if="bulletin.cotisations?.length">
+            <h2 class="mb-2 text-lg font-semibold">Cotisations</h2>
+            <AppTable :columns="cotisationsColumns" :rows="bulletin.cotisations">
+              <template #cell(cotisation)="{ row }">{{ row.cotisation?.libelle }}</template>
+              <template #cell(montant_salarial)="{ row }" class="text-right">{{ formatMoney(row.montant_salarial) }}</template>
+              <template #cell(montant_patronal)="{ row }" class="text-right">{{ formatMoney(row.montant_patronal) }}</template>
+            </AppTable>
+          </AppCard>
 
-          <section v-if="bulletin.delegations?.length">
-            <h2 class="text-lg font-semibold mb-2">Délégations</h2>
-            <div class="overflow-x-auto">
-              <table class="w-full border-collapse text-sm">
-                <thead>
-                  <tr class="bg-gray-100 text-left">
-                    <th class="p-2 border">Bénéficiaire</th>
-                    <th class="p-2 border text-right">Montant</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="d in bulletin.delegations" :key="d.id">
-                    <td class="p-2 border">{{ d.delegation?.beneficiaire }}</td>
-                    <td class="p-2 border text-right">{{ formatMoney(d.montant) }}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </section>
+          <AppCard v-if="bulletin.delegations?.length">
+            <h2 class="mb-2 text-lg font-semibold">Délégations</h2>
+            <AppTable :columns="delegationsColumns" :rows="bulletin.delegations">
+              <template #cell(beneficiaire)="{ row }">{{ row.delegation?.beneficiaire }}</template>
+              <template #cell(montant)="{ row }" class="text-right">{{ formatMoney(row.montant) }}</template>
+            </AppTable>
+          </AppCard>
 
-          <section v-if="bulletin.remboursements_avances?.length">
-            <h2 class="text-lg font-semibold mb-2">Avances remboursées</h2>
-            <div class="overflow-x-auto">
-              <table class="w-full border-collapse text-sm">
-                <thead>
-                  <tr class="bg-gray-100 text-left">
-                    <th class="p-2 border">Date avance</th>
-                    <th class="p-2 border">Motif</th>
-                    <th class="p-2 border text-right">Montant</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="r in bulletin.remboursements_avances" :key="r.id">
-                    <td class="p-2 border">{{ formatDate(r.avance?.date_avance) }}</td>
-                    <td class="p-2 border">{{ r.avance?.motif || '—' }}</td>
-                    <td class="p-2 border text-right">{{ formatMoney(r.montant) }}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </section>
+          <AppCard v-if="bulletin.remboursementsAvances?.length">
+            <h2 class="mb-2 text-lg font-semibold">Avances remboursées</h2>
+            <AppTable :columns="avancesColumns" :rows="bulletin.remboursementsAvances">
+              <template #cell(date_avance)="{ row }">{{ formatDate(row.avance?.date_avance) }}</template>
+              <template #cell(motif)="{ row }">{{ row.avance?.motif || '—' }}</template>
+              <template #cell(montant)="{ row }" class="text-right">{{ formatMoney(row.montant) }}</template>
+            </AppTable>
+          </AppCard>
         </div>
 
         <aside>
-          <div class="bg-gray-50 border rounded-lg p-4 space-y-2 text-sm">
-            <h2 class="text-base font-semibold mb-3">Synthèse</h2>
-            <div class="flex justify-between"><span>Total jours</span><span>{{ bulletin.total_jours }}</span></div>
-            <div class="flex justify-between"><span>Total gains</span><span>{{ formatMoney(bulletin.total_gains) }}</span></div>
-            <div class="flex justify-between font-semibold border-t pt-2 mt-2">
-              <span>BRUT</span><span>{{ formatMoney(bulletin.total_brut) }}</span>
+          <AppCard>
+            <h2 class="mb-3 text-base font-semibold">Synthèse</h2>
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between"><span>Total jours</span><span>{{ bulletin.total_jours }}</span></div>
+              <div class="flex justify-between"><span>Total gains</span><span>{{ formatMoney(bulletin.total_gains) }}</span></div>
+              <div class="flex justify-between border-t border-outline-variant pt-2 font-semibold">
+                <span>BRUT</span><span>{{ formatMoney(bulletin.total_brut) }}</span>
+              </div>
+              <div class="flex justify-between"><span>Cotisations salariales</span>
+                <span>-{{ formatMoney(bulletin.total_cotisations_salariales) }}</span></div>
+              <div class="flex justify-between"><span>IGR et retenues</span>
+                <span>-{{ formatMoney(bulletin.total_retenues - bulletin.total_cotisations_salariales) }}</span></div>
+              <div class="flex justify-between border-t border-outline-variant pt-2 font-semibold">
+                <span>NET</span>
+                <span>{{ formatMoney(bulletin.total_brut - bulletin.total_retenues) }}</span>
+              </div>
+              <div v-if="bulletin.total_brut - bulletin.total_retenues - bulletin.net_a_payer > 0"
+                   class="flex justify-between">
+                <span>Avances déduites</span>
+                <span>-{{ formatMoney(bulletin.total_brut - bulletin.total_retenues - bulletin.net_a_payer) }}</span>
+              </div>
+              <div class="flex justify-between border-t-2 border-outline pt-2 mt-2 text-base font-bold">
+                <span>NET À PAYER</span><span>{{ formatMoney(bulletin.net_a_payer) }}</span>
+              </div>
+              <div class="flex justify-between border-t border-outline-variant pt-2 mt-2 text-on-surface-variant">
+                <span>Cotisations patronales</span><span>{{ formatMoney(bulletin.total_cotisations_patronales) }}</span>
+              </div>
+              <div class="flex justify-between text-on-surface-variant">
+                <span>Coût total employeur</span><span>{{ formatMoney(bulletin.cout_total_employeur) }}</span>
+              </div>
+              <div v-if="bulletin.taux_change" class="flex justify-between text-on-surface-variant">
+                <span>Taux de change</span><span>{{ bulletin.taux_change }} ({{ formatDate(bulletin.date_taux_change) }})</span>
+              </div>
             </div>
-            <div class="flex justify-between"><span>Cotisations salariales</span>
-              <span>-{{ formatMoney(bulletin.total_cotisations_salariales) }}</span></div>
-            <div class="flex justify-between"><span>IGR et retenues</span>
-              <span>-{{ formatMoney(bulletin.total_retenues - bulletin.total_cotisations_salariales) }}</span></div>
-            <div class="flex justify-between font-semibold border-t pt-2 mt-2">
-              <span>NET</span>
-              <span>{{ formatMoney(bulletin.total_brut - bulletin.total_retenues) }}</span>
-            </div>
-            <div v-if="bulletin.total_brut - bulletin.total_retenues - bulletin.net_a_payer > 0"
-                 class="flex justify-between">
-              <span>Avances déduites</span>
-              <span>-{{ formatMoney(bulletin.total_brut - bulletin.total_retenues - bulletin.net_a_payer) }}</span>
-            </div>
-            <div class="flex justify-between text-base font-bold border-t-2 border-gray-300 pt-2 mt-2">
-              <span>NET À PAYER</span><span>{{ formatMoney(bulletin.net_a_payer) }}</span>
-            </div>
-            <div class="flex justify-between border-t pt-2 mt-2 text-gray-600">
-              <span>Cotisations patronales</span><span>{{ formatMoney(bulletin.total_cotisations_patronales) }}</span>
-            </div>
-            <div class="flex justify-between text-gray-600">
-              <span>Coût total employeur</span><span>{{ formatMoney(bulletin.cout_total_employeur) }}</span>
-            </div>
-            <div v-if="bulletin.taux_change" class="flex justify-between text-gray-600">
-              <span>Taux de change</span><span>{{ bulletin.taux_change }} ({{ formatDate(bulletin.date_taux_change) }})</span>
-            </div>
-          </div>
+          </AppCard>
         </aside>
       </div>
     </template>
@@ -192,6 +124,10 @@ import { useRoute } from 'vue-router';
 import { useBulletinStore } from '@/stores/bulletinStore';
 import Breadcrumb from '@/components/Breadcrumb.vue';
 import PageHeader from '@/components/PageHeader.vue';
+import AppCard from '@/components/AppCard.vue';
+import AppTable from '@/components/AppTable.vue';
+import AppButton from '@/components/AppButton.vue';
+import AppLoading from '@/components/AppLoading.vue';
 import { formatMoney, formatDate } from '@/utils/format';
 
 const store = useBulletinStore();
@@ -204,6 +140,38 @@ const crumbs = computed(() => [
   { label: 'Bulletins', to: '/bulletins' },
   { label: bulletin.value?.paie?.periode || 'Bulletin' },
 ]);
+
+const joursColumns = [
+  { key: 'date', label: 'Date' },
+  { key: 'type_jour', label: 'Type' },
+  { key: 'nombre', label: 'Nombre' },
+  { key: 'taux', label: 'Taux', align: 'right' },
+];
+
+const elementsColumns = [
+  { key: 'elem_paie', label: 'Élément' },
+  { key: 'code', label: 'Code' },
+  { key: 'type', label: 'Type' },
+  { key: 'description', label: 'Description' },
+  { key: 'montant', label: 'Montant', align: 'right' },
+];
+
+const cotisationsColumns = [
+  { key: 'cotisation', label: 'Cotisation' },
+  { key: 'montant_salarial', label: 'Part salariale', align: 'right' },
+  { key: 'montant_patronal', label: 'Part patronale', align: 'right' },
+];
+
+const delegationsColumns = [
+  { key: 'beneficiaire', label: 'Bénéficiaire' },
+  { key: 'montant', label: 'Montant', align: 'right' },
+];
+
+const avancesColumns = [
+  { key: 'date_avance', label: 'Date avance' },
+  { key: 'motif', label: 'Motif' },
+  { key: 'montant', label: 'Montant', align: 'right' },
+];
 
 const downloadPdf = () => {
   window.location.href = `/api/v1/bulletins/${route.params.id}/pdf`;

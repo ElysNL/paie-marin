@@ -3,28 +3,23 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreDeviseRequest;
+use App\Http\Requests\UpdateDeviseRequest;
+use App\Http\Resources\DeviseResource;
 use App\Models\Devise;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
 class DeviseController extends Controller
 {
-    public function index(): JsonResponse
+    public function index()
     {
-        return response()->json(Devise::actif()->get());
+        return DeviseResource::collection(Devise::actif()->get());
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreDeviseRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'code' => 'required|string|max:3|unique:devises',
-            'libelle' => 'required|string|max:50',
-            'symbole' => 'nullable|string|max:10',
-            'nb_decimales' => 'sometimes|integer|min:0|max:4',
-            'actif' => 'sometimes|boolean',
-        ]);
-
-        $devise = Devise::create($validated);
+        $this->authorize('create', [Devise::class]);
+        $devise = Devise::create($request->validated());
         return response()->json($devise, 201);
     }
 
@@ -33,22 +28,16 @@ class DeviseController extends Controller
         return response()->json($devise);
     }
 
-    public function update(Request $request, Devise $devise): JsonResponse
+    public function update(UpdateDeviseRequest $request, Devise $devise): JsonResponse
     {
-        $validated = $request->validate([
-            'code' => 'required|string|max:3|unique:devises,code,' . $devise->id,
-            'libelle' => 'required|string|max:50',
-            'symbole' => 'nullable|string|max:10',
-            'nb_decimales' => 'sometimes|integer|min:0|max:4',
-            'actif' => 'sometimes|boolean',
-        ]);
-
-        $devise->update($validated);
+        $this->authorize('update', [$devise]);
+        $devise->update($request->validated());
         return response()->json($devise);
     }
 
     public function destroy(Devise $devise): JsonResponse
     {
+        $this->authorize('delete', [$devise]);
         $devise->delete();
         return response()->json(null, 204);
     }

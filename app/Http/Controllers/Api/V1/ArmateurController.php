@@ -3,59 +3,44 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreArmateurRequest;
+use App\Http\Requests\UpdateArmateurRequest;
+use App\Http\Resources\ArmateurResource;
 use App\Models\Armateur;
-use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Illuminate\Http\JsonResponse;
 
 class ArmateurController extends Controller
 {
-    public function index(): JsonResponse
+    public function index()
     {
         $armateurs = Armateur::with('pays')->paginate(50);
-        return response()->json($armateurs);
+        return ArmateurResource::collection($armateurs);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreArmateurRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'code' => 'required|string|max:20|unique:armateurs',
-            'nom' => 'required|string|max:100',
-            'adresse' => 'nullable|string',
-            'telephone' => 'nullable|string',
-            'email' => 'nullable|email|max:100',
-            'pays_id' => 'nullable|exists:pays,id',
-            'actif' => 'sometimes|boolean',
-        ]);
-
-        $armateur = Armateur::create($validated);
+        $this->authorize('create', Armateur::class);
+        $armateur = Armateur::create($request->validated());
         return response()->json($armateur, 201);
     }
 
     public function show(Armateur $armateur): JsonResponse
     {
+        $this->authorize('view', $armateur);
         $armateur->load('pays', 'navires', 'contrats');
         return response()->json($armateur);
     }
 
-    public function update(Request $request, Armateur $armateur): JsonResponse
+    public function update(UpdateArmateurRequest $request, Armateur $armateur): JsonResponse
     {
-        $validated = $request->validate([
-            'code' => ['required', 'string', 'max:20', Rule::unique('armateurs')->ignore($armateur->id)],
-            'nom' => 'required|string|max:100',
-            'adresse' => 'nullable|string',
-            'telephone' => 'nullable|string',
-            'email' => 'nullable|email|max:100',
-            'pays_id' => 'nullable|exists:pays,id',
-            'actif' => 'sometimes|boolean',
-        ]);
-
-        $armateur->update($validated);
+        $this->authorize('update', $armateur);
+        $armateur->update($request->validated());
         return response()->json($armateur);
     }
 
     public function destroy(Armateur $armateur): JsonResponse
     {
+        $this->authorize('delete', $armateur);
         $armateur->delete();
         return response()->json(null, 204);
     }

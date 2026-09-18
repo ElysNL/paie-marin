@@ -3,81 +3,37 @@
     <Breadcrumb :items="crumbs" />
     <PageHeader :title="headerTitle" />
     <form @submit.prevent="submit" class="space-y-4">
-      <div>
-        <label>Employé</label>
-        <select v-model="form.employe_id" required class="w-full border p-2 rounded">
-          <option :value="null" disabled>-- Sélectionner --</option>
-          <option v-for="employe in employes" :key="employe.id" :value="employe.id">
-            {{ employe.nom }} {{ employe.prenom }}
-          </option>
-        </select>
-      </div>
-      <div>
-        <label>Navire</label>
-        <select v-model="form.navire_id" required class="w-full border p-2 rounded">
-          <option :value="null" disabled>-- Sélectionner --</option>
-          <option v-for="navire in navires" :key="navire.id" :value="navire.id">
-            {{ navire.nom }}
-          </option>
-        </select>
-      </div>
-      <div>
-        <label>Fonction</label>
-        <select v-model="form.fonction_id" required class="w-full border p-2 rounded">
-          <option :value="null" disabled>-- Sélectionner --</option>
-          <option v-for="fonction in fonctions" :key="fonction.id" :value="fonction.id">
-            {{ fonction.libelle }}
-          </option>
-        </select>
-      </div>
-      <div>
-        <label>Contrat armateur</label>
-        <select v-model="form.contrat_armateur_id" required class="w-full border p-2 rounded">
-          <option :value="null" disabled>-- Sélectionner --</option>
-          <option v-for="contrat in contrats" :key="contrat.id" :value="contrat.id">
-            {{ contrat.libelle }}
-          </option>
-        </select>
-      </div>
-      <div>
-        <label>Date d'embarquement</label>
-        <input v-model="form.date_embt" type="date" required class="w-full border p-2 rounded" />
-      </div>
-      <div>
-        <label>Date de débarquement</label>
-        <input v-model="form.date_debt" type="date" class="w-full border p-2 rounded" />
-      </div>
-      <div>
-        <label>Taux journalier</label>
-        <input v-model.number="form.taux_journalier" type="number" step="0.01" required class="w-full border p-2 rounded" />
-      </div>
-      <div>
-        <label>Devise</label>
-        <select v-model="form.devise_id" required class="w-full border p-2 rounded">
-          <option :value="null" disabled>-- Sélectionner --</option>
-          <option v-for="devise in devises" :key="devise.id" :value="devise.id">
-            {{ devise.code }}
-          </option>
-        </select>
-      </div>
-      <div>
-        <label>Statut</label>
-        <select v-model="form.statut" class="w-full border p-2 rounded">
-          <option value="actif">Actif</option>
-          <option value="termine">Terminé</option>
-          <option value="annule">Annulé</option>
-        </select>
-      </div>
+      <AppSelect v-model="form.employe_id" label="Employé" placeholder="-- Sélectionner --"
+        :options="employes.map(e => ({ value: e.id, label: e.nom + ' ' + e.prenom }))"
+        :error="errors.employe_id" required />
+      <AppSelect v-model="form.navire_id" label="Navire" placeholder="-- Sélectionner --"
+        :options="navires.map(n => ({ value: n.id, label: n.nom }))"
+        :error="errors.navire_id" required />
+      <AppSelect v-model="form.fonction_id" label="Fonction" placeholder="-- Sélectionner --"
+        :options="fonctions.map(f => ({ value: f.id, label: f.libelle }))"
+        :error="errors.fonction_id" required />
+      <AppSelect v-model="form.contrat_armateur_id" label="Contrat armateur" placeholder="-- Sélectionner --"
+        :options="contrats.map(c => ({ value: c.id, label: c.libelle }))"
+        :error="errors.contrat_armateur_id" required />
+      <AppInput v-model="form.date_embt" label="Date d'embarquement" type="date" :error="errors.date_embt" required />
+      <AppInput v-model="form.date_debt" label="Date de débarquement" type="date" :error="errors.date_debt" />
+      <AppInput v-model.number="form.taux_journalier" label="Taux journalier" type="number" step="0.01" :error="errors.taux_journalier" required />
+      <AppSelect v-model="form.devise_id" label="Devise" placeholder="-- Sélectionner --"
+        :options="devises.map(d => ({ value: d.id, label: d.code }))"
+        :error="errors.devise_id" required />
+      <AppSelect v-model="form.statut" label="Statut"
+        :options="[{ value: 'actif', label: 'Actif' }, { value: 'termine', label: 'Terminé' }, { value: 'annule', label: 'Annulé' }]"
+        :error="errors.statut" />
       <div class="flex gap-2">
-        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Enregistrer</button>
-        <button type="button" @click="$router.back()" class="px-4 py-2 border rounded">Annuler</button>
+        <AppButton type="submit">Enregistrer</AppButton>
+        <AppButton variant="secondary" type="button" @click="$router.back()">Annuler</AppButton>
       </div>
     </form>
   </div>
 </template>
 
 <script setup>
-import { reactive, computed, onMounted } from 'vue';
+import { reactive, ref, computed, onMounted } from 'vue';
 import { useAffectationStore } from '@/stores/affectationStore';
 import { useEmployeStore } from '@/stores/employeStore';
 import { useNavireStore } from '@/stores/navireStore';
@@ -88,6 +44,9 @@ import apiClient from '@/services/api';
 import { useRouter, useRoute } from 'vue-router';
 import Breadcrumb from '@/components/Breadcrumb.vue';
 import PageHeader from '@/components/PageHeader.vue';
+import AppInput from '@/components/AppInput.vue';
+import AppSelect from '@/components/AppSelect.vue';
+import AppButton from '@/components/AppButton.vue';
 
 const store = useAffectationStore();
 const employeStore = useEmployeStore();
@@ -123,21 +82,32 @@ const form = reactive({
   statut: 'actif',
 });
 
+const errors = ref({});
+
 const submit = async () => {
-  if (isEdit.value) {
-    await store.updateAffectation(route.params.id, form);
-  } else {
-    await store.createAffectation(form);
+  errors.value = {};
+  try {
+    if (isEdit.value) {
+      await store.updateAffectation(route.params.id, form);
+    } else {
+      await store.createAffectation(form);
+    }
+    router.push('/affectations');
+  } catch (e) {
+    if (e.response?.status === 422) {
+      errors.value = e.response.data.errors || {};
+    }
   }
-  router.push('/affectations');
 };
 
 onMounted(async () => {
-  employeStore.fetchEmployes();
-  navireStore.fetchNavires();
-  fonctionStore.fetchFonctions();
-  contratStore.fetchContrats();
-  deviseStore.fetchDevises();
+  await Promise.all([
+    employeStore.fetchEmployes(),
+    navireStore.fetchNavires(),
+    fonctionStore.fetchFonctions(),
+    contratStore.fetchContrats(),
+    deviseStore.fetchDevises(),
+  ]);
   if (isEdit.value) {
     const response = await apiClient.get(`/affectations/${route.params.id}`);
     Object.assign(form, response.data);

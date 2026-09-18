@@ -6,6 +6,8 @@ export const usePaieStore = defineStore('paies', {
         paies: [],
         currentPaie: null,
         eligibles: [],
+        naviresEligibles: [],
+        statutCalcul: null,
         loading: false,
         pagination: null,
     }),
@@ -40,6 +42,16 @@ export const usePaieStore = defineStore('paies', {
             this.eligibles = response.data;
             return response.data;
         },
+        async fetchNaviresEligibles(id) {
+            const response = await apiClient.get(`/paies/${id}/navires-eligibles`);
+            this.naviresEligibles = response.data;
+            return response.data;
+        },
+        async fetchStatutCalcul(id) {
+            const response = await apiClient.get(`/paies/${id}/statut-calcul`);
+            this.statutCalcul = response.data;
+            return response.data;
+        },
         async createPaie(data) {
             const response = await apiClient.post('/paies', data);
             this.paies.unshift(response.data);
@@ -55,8 +67,8 @@ export const usePaieStore = defineStore('paies', {
             await apiClient.delete(`/paies/${id}`);
             this.paies = this.paies.filter(p => p.id !== id);
         },
-        async calculer(id) {
-            const response = await apiClient.post(`/paies/${id}/calculer`);
+        async calculer(id, payload = {}) {
+            const response = await apiClient.post(`/paies/${id}/calculer`, payload);
             return response.data;
         },
         async valider(id) {

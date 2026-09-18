@@ -3,41 +3,32 @@
     <Breadcrumb :items="crumbs" />
     <PageHeader :title="headerTitle" />
     <form @submit.prevent="submit" class="space-y-4">
-      <div>
-        <label>Code</label>
-        <input v-model="form.code" required class="w-full border p-2 rounded" />
-      </div>
-      <div>
-        <label>Libellé</label>
-        <input v-model="form.libelle" required class="w-full border p-2 rounded" />
-      </div>
-      <div>
-        <label>Symbole</label>
-        <input v-model="form.symbole" class="w-full border p-2 rounded" />
-      </div>
-      <div>
-        <label>Nombre de décimales</label>
-        <input v-model.number="form.nb_decimales" type="number" class="w-full border p-2 rounded" />
-      </div>
-      <div>
-        <label>Actif</label>
-        <input v-model="form.actif" type="checkbox" class="ml-2" />
+      <AppInput v-model="form.code" label="Code" :error="errors.code" required />
+      <AppInput v-model="form.libelle" label="Libellé" :error="errors.libelle" required />
+      <AppInput v-model="form.symbole" label="Symbole" :error="errors.symbole" />
+      <AppInput v-model.number="form.nb_decimales" label="Nombre de décimales" type="number" :error="errors.nb_decimales" />
+      <div class="mb-4">
+        <label class="inline-flex items-center gap-2 text-sm font-medium text-on-surface-variant">
+          <input v-model="form.actif" type="checkbox" class="h-4 w-4 rounded border-outline text-primary focus:ring-primary/20" /> Actif
+        </label>
       </div>
       <div class="flex gap-2">
-        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Enregistrer</button>
-        <button type="button" @click="$router.back()" class="px-4 py-2 border rounded">Annuler</button>
+        <AppButton type="submit">Enregistrer</AppButton>
+        <AppButton variant="secondary" type="button" @click="$router.back()">Annuler</AppButton>
       </div>
     </form>
   </div>
 </template>
 
 <script setup>
-import { reactive, computed, onMounted } from 'vue';
+import { reactive, ref, computed, onMounted } from 'vue';
 import { useDeviseStore } from '@/stores/deviseStore';
 import apiClient from '@/services/api';
 import { useRouter, useRoute } from 'vue-router';
 import Breadcrumb from '@/components/Breadcrumb.vue';
 import PageHeader from '@/components/PageHeader.vue';
+import AppInput from '@/components/AppInput.vue';
+import AppButton from '@/components/AppButton.vue';
 
 const store = useDeviseStore();
 const router = useRouter();
@@ -59,13 +50,22 @@ const form = reactive({
   actif: true,
 });
 
+const errors = ref({});
+
 const submit = async () => {
-  if (isEdit.value) {
-    await store.updateDevise(route.params.id, form);
-  } else {
-    await store.createDevise(form);
+  errors.value = {};
+  try {
+    if (isEdit.value) {
+      await store.updateDevise(route.params.id, form);
+    } else {
+      await store.createDevise(form);
+    }
+    router.push('/devises');
+  } catch (e) {
+    if (e.response?.status === 422) {
+      errors.value = e.response.data.errors || {};
+    }
   }
-  router.push('/devises');
 };
 
 onMounted(async () => {

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class BulletinElemPaie extends Model
 {
@@ -24,17 +25,17 @@ class BulletinElemPaie extends Model
         'ordre' => 'integer',
     ];
 
-    public function bulletin()
+    public function bulletin(): BelongsTo
     {
         return $this->belongsTo(BulletinPaie::class, 'bulletin_id');
     }
 
-    public function elemPaie()
+    public function elemPaie(): BelongsTo
     {
         return $this->belongsTo(ElemPaie::class);
     }
 
-    public function devise()
+    public function devise(): BelongsTo
     {
         return $this->belongsTo(Devise::class);
     }

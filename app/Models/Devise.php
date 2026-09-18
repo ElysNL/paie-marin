@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Devise extends Model
 {
@@ -16,32 +17,32 @@ class Devise extends Model
         'nb_decimales' => 'integer',
     ];
 
-    public function contratsArmateur()
+    public function contratsArmateur(): HasMany
     {
         return $this->hasMany(ContratArmateur::class);
     }
 
-    public function affectations()
+    public function affectations(): HasMany
     {
         return $this->hasMany(AffectationMarin::class);
     }
 
-    public function tauxChangesSource()
+    public function tauxChangesSource(): HasMany
     {
         return $this->hasMany(TauxChange::class, 'devise_source_id');
     }
 
-    public function tauxChangesCible()
+    public function tauxChangesCible(): HasMany
     {
         return $this->hasMany(TauxChange::class, 'devise_cible_id');
     }
 
-    public function avances()
+    public function avances(): HasMany
     {
         return $this->hasMany(Avance::class);
     }
 
-    public function delegations()
+    public function delegations(): HasMany
     {
         return $this->hasMany(Delegation::class);
     }

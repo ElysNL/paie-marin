@@ -1,68 +1,104 @@
 <template>
   <div>
     <Breadcrumb :items="crumbs" />
-    <PageHeader title="Pays">
-      <template #action>
-        <button @click="goToCreate" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">Nouveau pays</button>
-      </template>
-    </PageHeader>
+    <div class="mb-6 flex items-center justify-between">
+      <h1 class="text-2xl font-bold">Pays</h1>
+      <router-link to="/pays/create">
+        <AppButton>Nouveau pays</AppButton>
+      </router-link>
+    </div>
 
-    <table class="w-full border-collapse">
-      <thead>
-        <tr class="bg-gray-100 text-left">
-          <th class="p-2 border">Code</th>
-          <th class="p-2 border">Nom</th>
-          <th class="p-2 border">Nationalité</th>
-          <th class="p-2 border">Actif</th>
-          <th class="p-2 border">Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="pays in pays" :key="pays.id">
-          <td class="p-2 border">{{ pays.code }}</td>
-          <td class="p-2 border">{{ pays.nom }}</td>
-          <td class="p-2 border">{{ pays.nationalite }}</td>
-          <td class="p-2 border">{{ pays.actif ? 'Oui' : 'Non' }}</td>
-          <td class="p-2 border">
-            <button @click="edit(pays.id)" class="text-blue-600 mr-2">Modifier</button>
-            <button @click="remove(pays.id)" class="text-red-600">Supprimer</button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <AppCard>
+      <div class="mb-4">
+        <input
+          v-model="search"
+          type="text"
+          placeholder="Rechercher par nom ou code…"
+          class="w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+          @input="debouncedFetch"
+        />
+      </div>
 
-    <Pagination
-      :current="pagination?.current_page"
-      :last="pagination?.last_page"
-      @page-change="fetchPays"
-    />
+      <AppTable :columns="columns" :rows="store.pays" row-key="id">
+        <template #cell(code)="{ row }">{{ row.code }}</template>
+        <template #cell(nom)="{ row }">{{ row.nom }}</template>
+        <template #cell(nationalite)="{ row }">{{ row.nationalite }}</template>
+        <template #cell(actif)="{ row }">
+          <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold"
+            :class="row.actif ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'">
+            {{ row.actif ? 'Oui' : 'Non' }}
+          </span>
+        </template>
+        <template #cell(actions)="{ row }">
+          <div class="flex items-center gap-1">
+            <router-link :to="`/pays/${row.id}/edit`">
+              <AppButton variant="text" class="!px-2 !py-1">Modifier</AppButton>
+            </router-link>
+            <AppButton variant="text" class="!px-2 !py-1 !text-red-600 hover:!bg-red-50" @click="remove(row)">
+              Supprimer
+            </AppButton>
+          </div>
+        </template>
+      </AppTable>
+
+      <Pagination
+        v-if="store.pagination"
+        :current="store.pagination.current_page"
+        :last="store.pagination.last_page"
+        @page-change="goToPage"
+      />
+
+      <AppEmpty v-if="!loading && store.pays.length === 0" message="Aucun pays enregistré." />
+      <AppLoading v-if="loading" message="Chargement des pays…" />
+    </AppCard>
   </div>
 </template>
 
 <script setup>
-import { onMounted, computed } from 'vue';
+import { ref, onMounted } from 'vue';
 import { usePaysStore } from '@/stores/paysStore';
-import { useRouter } from 'vue-router';
-import Pagination from '@/components/Pagination.vue';
 import Breadcrumb from '@/components/Breadcrumb.vue';
-import PageHeader from '@/components/PageHeader.vue';
+import AppCard from '@/components/AppCard.vue';
+import AppTable from '@/components/AppTable.vue';
+import AppButton from '@/components/AppButton.vue';
+import AppEmpty from '@/components/AppEmpty.vue';
+import AppLoading from '@/components/AppLoading.vue';
+import Pagination from '@/components/Pagination.vue';
 
 const store = usePaysStore();
-const router = useRouter();
 const crumbs = [{ label: 'Tableau de bord', to: '/dashboard' }, { label: 'Pays' }];
+const loading = ref(false);
+const search = ref('');
 
-const pays = computed(() => store.pays);
-const pagination = computed(() => store.pagination);
+const columns = [
+  { key: 'code', label: 'Code' },
+  { key: 'nom', label: 'Nom' },
+  { key: 'nationalite', label: 'Nationalité' },
+  { key: 'actif', label: 'Actif' },
+  { key: 'actions', label: 'Actions', align: 'right' },
+];
 
-const fetchPays = (page = 1) => store.fetchPays(page);
-const goToCreate = () => router.push('/pays/create');
-const edit = (id) => router.push(`/pays/${id}/edit`);
+let debounceTimer = null;
+const debouncedFetch = () => {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(fetchData, 300);
+};
 
-const remove = async (id) => {
-  if (confirm('Voulez-vous supprimer ce pays ?')) {
-    await store.deletePays(id);
+const fetchData = async (page = 1) => {
+  loading.value = true;
+  try {
+    await store.fetchPays(page);
+  } finally {
+    loading.value = false;
   }
 };
 
-onMounted(() => fetchPays());
+const goToPage = (page) => fetchData(page);
+
+const remove = async (row) => {
+  if (!confirm('Voulez-vous supprimer ce pays ?')) return;
+  await store.deletePays(row.id);
+};
+
+onMounted(() => fetchData());
 </script>

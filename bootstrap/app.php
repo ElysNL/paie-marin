@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // de la SPA (état dit "stateful" pour Sanctum).
         $middleware->api(append: [
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+            \App\Http\Middleware\ValidateSession::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

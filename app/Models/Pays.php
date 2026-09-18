@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Pays extends Model
 {
@@ -16,27 +17,27 @@ class Pays extends Model
     ];
 
     // Relations
-    public function banques()
+    public function banques(): HasMany
     {
         return $this->hasMany(Banque::class);
     }
 
-    public function compagnies()
+    public function compagnies(): HasMany
     {
         return $this->hasMany(Compagnie::class);
     }
 
-    public function armateurs()
+    public function armateurs(): HasMany
     {
         return $this->hasMany(Armateur::class);
     }
 
-    public function navires()
+    public function navires(): HasMany
     {
         return $this->hasMany(Navire::class, 'pavillon_id');
     }
 
-    public function employes()
+    public function employes(): HasMany
     {
         return $this->hasMany(Employe::class, 'nationalite_id');
     }

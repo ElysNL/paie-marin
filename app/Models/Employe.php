@@ -4,13 +4,16 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Employe extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'matricule', 'nom', 'prenom', 'date_naissance', 'lieu_naissance',
+        'matricule', 'num_lpm', 'num_cnaps', 'visa_contrat',
+        'nom', 'prenom', 'date_naissance', 'lieu_naissance',
         'nationalite_id', 'adresse', 'telephone', 'email', 'cin',
         'banque_id', 'compte_bancaire', 'date_embauche', 'nbre_charges', 'actif'
     ];
@@ -23,32 +26,32 @@ class Employe extends Model
     ];
 
     // Relations
-    public function nationalite()
+    public function nationalite(): BelongsTo
     {
         return $this->belongsTo(Pays::class, 'nationalite_id');
     }
 
-    public function banque()
+    public function banque(): BelongsTo
     {
         return $this->belongsTo(Banque::class);
     }
 
-    public function affectations()
+    public function affectations(): HasMany
     {
         return $this->hasMany(AffectationMarin::class);
     }
 
-    public function bulletins()
+    public function bulletins(): HasMany
     {
         return $this->hasMany(BulletinPaie::class);
     }
 
-    public function avances()
+    public function avances(): HasMany
     {
         return $this->hasMany(Avance::class);
     }
 
-    public function delegations()
+    public function delegations(): HasMany
     {
         return $this->hasMany(Delegation::class);
     }

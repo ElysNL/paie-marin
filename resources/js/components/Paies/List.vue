@@ -1,92 +1,115 @@
 <template>
   <div>
     <Breadcrumb :items="crumbs" />
-    <PageHeader title="Paies">
-      <template #action>
-        <button @click="goToCreate" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">Nouvelle paie</button>
-      </template>
-    </PageHeader>
-
-    <div v-if="store.loading" class="py-8 text-center text-gray-500">Chargement…</div>
-
-    <div v-else-if="paies.length === 0" class="py-8 text-center text-gray-500">
-      Aucune paie enregistrée. Créez une nouvelle période de paie pour commencer.
+    <div class="mb-6 flex items-center justify-between">
+      <h1 class="text-2xl font-bold">Paies</h1>
+      <router-link to="/paies/create">
+        <AppButton>Nouvelle paie</AppButton>
+      </router-link>
     </div>
 
-    <template v-else>
-      <div class="overflow-x-auto">
-        <table class="w-full border-collapse">
-          <thead>
-            <tr class="bg-gray-100 text-left">
-              <th class="p-2 border">N°</th>
-              <th class="p-2 border">Libellé</th>
-              <th class="p-2 border">Période</th>
-              <th class="p-2 border">Dates</th>
-              <th class="p-2 border">Bulletins</th>
-              <th class="p-2 border">Statut</th>
-              <th class="p-2 border">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="paie in paies" :key="paie.id" class="hover:bg-gray-50">
-              <td class="p-2 border">{{ paie.num_paie }}</td>
-              <td class="p-2 border">{{ paie.libelle }}</td>
-              <td class="p-2 border">{{ paie.periode }}</td>
-              <td class="p-2 border whitespace-nowrap">
-                {{ formatDate(paie.date_debut) }} → {{ formatDate(paie.date_fin) }}
-              </td>
-              <td class="p-2 border">{{ paie.bulletins_count ?? 0 }}</td>
-              <td class="p-2 border">
-                <span class="px-2 py-1 rounded text-xs font-semibold"
-                      :class="statutBadge[paie.statut] || 'bg-gray-200 text-gray-700'">
-                  {{ statutLibelle[paie.statut] || paie.statut }}
-                </span>
-              </td>
-              <td class="p-2 border">
-                <button @click="detail(paie.id)" class="text-green-600 mr-2 hover:underline">Voir</button>
-                <button v-if="['brouillon', 'calcule'].includes(paie.statut)"
-                        @click="edit(paie.id)" class="text-blue-600 mr-2 hover:underline">Modifier</button>
-                <button v-if="paie.statut === 'brouillon'"
-                        @click="remove(paie.id)" class="text-red-600 hover:underline">Supprimer</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+    <AppCard>
+      <div class="mb-4">
+        <input
+          v-model="search"
+          type="text"
+          placeholder="Rechercher par libellé ou numéro…"
+          class="w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+          @input="debouncedFetch"
+        />
       </div>
 
+      <AppTable :columns="columns" :rows="store.paies" row-key="id">
+        <template #cell(num_paie)="{ row }">{{ row.num_paie }}</template>
+        <template #cell(libelle)="{ row }">{{ row.libelle }}</template>
+        <template #cell(periode)="{ row }">{{ row.periode }}</template>
+        <template #cell(dates)="{ row }" class="whitespace-nowrap">
+          {{ formatDate(row.date_debut) }} → {{ formatDate(row.date_fin) }}
+        </template>
+        <template #cell(bulletins_count)="{ row }">{{ row.bulletins_count ?? 0 }}</template>
+        <template #cell(statut)="{ row }"><AppBadge :statut="row.statut" /></template>
+        <template #cell(actions)="{ row }">
+          <div class="flex items-center gap-1">
+            <router-link :to="`/paies/${row.id}`">
+              <AppButton variant="text" class="!px-2 !py-1">Voir</AppButton>
+            </router-link>
+            <router-link v-if="['brouillon', 'calcule'].includes(row.statut)" :to="`/paies/${row.id}/edit`">
+              <AppButton variant="text" class="!px-2 !py-1">Modifier</AppButton>
+            </router-link>
+            <AppButton
+              v-if="row.statut === 'brouillon'"
+              variant="text"
+              class="!px-2 !py-1 !text-red-600 hover:!bg-red-50"
+              @click="remove(row)"
+            >
+              Supprimer
+            </AppButton>
+          </div>
+        </template>
+      </AppTable>
+
       <Pagination
-        :current="pagination?.current_page"
-        :last="pagination?.last_page"
-        @page-change="fetchPaies"
+        v-if="store.pagination"
+        :current="store.pagination.current_page"
+        :last="store.pagination.last_page"
+        @page-change="goToPage"
       />
-    </template>
+
+      <AppEmpty v-if="!loading && store.paies.length === 0" message="Aucune paie enregistrée." />
+      <AppLoading v-if="loading" message="Chargement des paies…" />
+    </AppCard>
   </div>
 </template>
 
 <script setup>
-import { onMounted, computed } from 'vue';
+import { ref, onMounted } from 'vue';
 import { usePaieStore } from '@/stores/paieStore';
-import { useRouter } from 'vue-router';
+import Breadcrumb from '@/components/Breadcrumb.vue';
+import AppCard from '@/components/AppCard.vue';
+import AppTable from '@/components/AppTable.vue';
+import AppButton from '@/components/AppButton.vue';
+import AppBadge from '@/components/AppBadge.vue';
+import AppEmpty from '@/components/AppEmpty.vue';
+import AppLoading from '@/components/AppLoading.vue';
 import Pagination from '@/components/Pagination.vue';
-import { formatDate, statutBadge, statutLibelle } from '@/utils/format';
+import { formatDate } from '@/utils/format';
 
 const store = usePaieStore();
-const router = useRouter();
 const crumbs = [{ label: 'Tableau de bord', to: '/dashboard' }, { label: 'Paies' }];
+const loading = ref(false);
+const search = ref('');
 
-const paies = computed(() => store.paies);
-const pagination = computed(() => store.pagination);
+const columns = [
+  { key: 'num_paie', label: 'N°' },
+  { key: 'libelle', label: 'Libellé' },
+  { key: 'periode', label: 'Période' },
+  { key: 'dates', label: 'Dates' },
+  { key: 'bulletins_count', label: 'Bulletins' },
+  { key: 'statut', label: 'Statut' },
+  { key: 'actions', label: 'Actions', align: 'right' },
+];
 
-const fetchPaies = (page = 1) => store.fetchPaies(page);
-const goToCreate = () => router.push('/paies/create');
-const detail = (id) => router.push(`/paies/${id}`);
-const edit = (id) => router.push(`/paies/${id}/edit`);
+let debounceTimer = null;
+const debouncedFetch = () => {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(fetchData, 300);
+};
 
-const remove = async (id) => {
-  if (confirm('Voulez-vous supprimer cette paie ?')) {
-    await store.deletePaie(id);
+const fetchData = async (page = 1) => {
+  loading.value = true;
+  try {
+    await store.fetchPaies(page);
+  } finally {
+    loading.value = false;
   }
 };
 
-onMounted(() => fetchPaies());
+const goToPage = (page) => fetchData(page);
+
+const remove = async (row) => {
+  if (!confirm('Voulez-vous supprimer cette paie ?')) return;
+  await store.deletePaie(row.id);
+};
+
+onMounted(() => fetchData());
 </script>

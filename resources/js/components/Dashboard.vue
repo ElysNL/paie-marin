@@ -123,7 +123,7 @@ const error = ref('');
 
 const paiesParStatut = computed(() => {
   const entries = Object.entries(data.value.paies_par_statut || {});
-  const order = ['brouillon', 'calcule', 'controle', 'valide', 'cloture'];
+  const order = ['brouillon', 'calcule', 'valide', 'cloture'];
   return Object.fromEntries(
     entries.sort(([a], [b]) => order.indexOf(a) - order.indexOf(b)),
   );
@@ -132,7 +132,6 @@ const paiesParStatut = computed(() => {
 const paiesParStatutLibelle = {
   brouillon: 'en cours de saisie',
   calcule: 'calculées, à valider',
-  controle: 'en contrôle',
   valide: 'validées, à clôturer',
   cloture: 'clôturées',
 };

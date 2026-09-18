@@ -1,58 +1,44 @@
-<!-- resources/js/components/Armateurs/Form.vue -->
 <template>
   <div class="max-w-lg">
     <Breadcrumb :items="crumbs" />
     <PageHeader :title="headerTitle" />
     <form @submit.prevent="submit" class="space-y-4">
-      <div>
-        <label>Code</label>
-        <input v-model="form.code" required class="w-full border p-2 rounded" />
+      <AppInput v-model="form.code" label="Code" :error="errors.code" required />
+      <AppInput v-model="form.nom" label="Nom" :error="errors.nom" required />
+      <AppSelect v-model="form.pays_id" label="Pays" placeholder="-- Sélectionner --"
+        :options="paysList.map(p => ({ value: p.id, label: p.nom }))"
+        :error="errors.pays_id" />
+      <div class="mb-4">
+        <label class="mb-1.5 block text-sm font-medium text-on-surface-variant">Adresse</label>
+        <textarea v-model="form.adresse" class="w-full rounded-xl border border-outline bg-surface-container px-4 py-3 text-on-surface outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"></textarea>
+        <p v-if="errors.adresse" class="mt-1.5 text-sm text-error">{{ errors.adresse[0] }}</p>
       </div>
-      <div>
-        <label>Nom</label>
-        <input v-model="form.nom" required class="w-full border p-2 rounded" />
-      </div>
-      <div>
-        <label>Pays</label>
-        <select v-model="form.pays_id" class="w-full border p-2 rounded">
-          <option :value="null">-- Sélectionner --</option>
-          <option v-for="pays in paysList" :key="pays.id" :value="pays.id">
-            {{ pays.nom }}
-          </option>
-        </select>
-      </div>
-      <div>
-        <label>Adresse</label>
-        <textarea v-model="form.adresse" class="w-full border p-2 rounded"></textarea>
-      </div>
-      <div>
-        <label>Téléphone</label>
-        <input v-model="form.telephone" class="w-full border p-2 rounded" />
-      </div>
-      <div>
-        <label>Email</label>
-        <input v-model="form.email" type="email" class="w-full border p-2 rounded" />
-      </div>
-      <div>
-        <label>Actif</label>
-        <input v-model="form.actif" type="checkbox" class="ml-2" />
+      <AppInput v-model="form.telephone" label="Téléphone" :error="errors.telephone" />
+      <AppInput v-model="form.email" label="Email" type="email" :error="errors.email" />
+      <div class="mb-4">
+        <label class="inline-flex items-center gap-2 text-sm font-medium text-on-surface-variant">
+          <input v-model="form.actif" type="checkbox" class="h-4 w-4 rounded border-outline text-primary focus:ring-primary/20" /> Actif
+        </label>
       </div>
       <div class="flex gap-2">
-        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Enregistrer</button>
-        <button type="button" @click="$router.back()" class="px-4 py-2 border rounded">Annuler</button>
+        <AppButton type="submit">Enregistrer</AppButton>
+        <AppButton variant="secondary" type="button" @click="$router.back()">Annuler</AppButton>
       </div>
     </form>
   </div>
 </template>
 
 <script setup>
-import { reactive, computed, onMounted } from 'vue';
+import { reactive, ref, computed, onMounted } from 'vue';
 import { useArmateurStore } from '@/stores/armateurStore';
 import { usePaysStore } from '@/stores/paysStore';
 import apiClient from '@/services/api';
 import { useRouter, useRoute } from 'vue-router';
 import Breadcrumb from '@/components/Breadcrumb.vue';
 import PageHeader from '@/components/PageHeader.vue';
+import AppInput from '@/components/AppInput.vue';
+import AppSelect from '@/components/AppSelect.vue';
+import AppButton from '@/components/AppButton.vue';
 
 const store = useArmateurStore();
 const paysStore = usePaysStore();
@@ -78,17 +64,26 @@ const form = reactive({
   actif: true,
 });
 
+const errors = ref({});
+
 const submit = async () => {
-  if (isEdit.value) {
-    await store.updateArmateur(route.params.id, form);
-  } else {
-    await store.createArmateur(form);
+  errors.value = {};
+  try {
+    if (isEdit.value) {
+      await store.updateArmateur(route.params.id, form);
+    } else {
+      await store.createArmateur(form);
+    }
+    router.push('/armateurs');
+  } catch (e) {
+    if (e.response?.status === 422) {
+      errors.value = e.response.data.errors || {};
+    }
   }
-  router.push('/armateurs');
 };
 
 onMounted(async () => {
-  paysStore.fetchPays();
+  await paysStore.fetchPays();
   if (isEdit.value) {
     const response = await apiClient.get(`/armateurs/${route.params.id}`);
     Object.assign(form, response.data);

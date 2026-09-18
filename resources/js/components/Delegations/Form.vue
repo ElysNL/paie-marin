@@ -2,74 +2,30 @@
   <div class="max-w-xl">
     <Breadcrumb :items="crumbs" />
     <PageHeader :title="headerTitle" />
-
     <form @submit.prevent="submit" class="space-y-4">
-      <div>
-        <label for="employe_id" class="block mb-1 text-sm font-medium">Employé</label>
-        <select id="employe_id" v-model="form.employe_id" required class="w-full border p-2 rounded">
-          <option :value="null" disabled>-- Sélectionner --</option>
-          <option v-for="e in employes" :key="e.id" :value="e.id">{{ e.nom }} {{ e.prenom }}</option>
-        </select>
-        <p v-if="errors.employe_id" class="text-sm text-red-600 mt-1">{{ errors.employe_id[0] }}</p>
-      </div>
-      <div>
-        <label for="beneficiaire" class="block mb-1 text-sm font-medium">Bénéficiaire</label>
-        <input id="beneficiaire" v-model="form.beneficiaire" required class="w-full border p-2 rounded" />
-        <p v-if="errors.beneficiaire" class="text-sm text-red-600 mt-1">{{ errors.beneficiaire[0] }}</p>
+      <AppSelect v-model="form.employe_id" label="Employé" placeholder="-- Sélectionner --"
+        :options="employes.map(e => ({ value: e.id, label: e.nom + ' ' + e.prenom }))"
+        :error="errors.employe_id" required />
+      <AppInput v-model="form.beneficiaire" label="Bénéficiaire" :error="errors.beneficiaire" required />
+      <div class="grid grid-cols-2 gap-4">
+        <AppInput v-model.number="form.montant" label="Montant" type="number" min="0" step="0.01" :error="errors.montant" required />
+        <AppSelect v-model="form.devise_id" label="Devise" placeholder="-- Sélectionner --"
+          :options="devises.map(d => ({ value: d.id, label: d.code }))"
+          :error="errors.devise_id" />
       </div>
       <div class="grid grid-cols-2 gap-4">
-        <div>
-          <label for="montant" class="block mb-1 text-sm font-medium">Montant</label>
-          <input id="montant" v-model.number="form.montant" type="number" min="0" step="0.01" required
-                 class="w-full border p-2 rounded" />
-          <p v-if="errors.montant" class="text-sm text-red-600 mt-1">{{ errors.montant[0] }}</p>
-        </div>
-        <div>
-          <label for="devise_id" class="block mb-1 text-sm font-medium">Devise</label>
-          <select id="devise_id" v-model="form.devise_id" class="w-full border p-2 rounded">
-            <option :value="null">-- Sélectionner --</option>
-            <option v-for="d in devises" :key="d.id" :value="d.id">{{ d.code }}</option>
-          </select>
-          <p v-if="errors.devise_id" class="text-sm text-red-600 mt-1">{{ errors.devise_id[0] }}</p>
-        </div>
+        <AppInput v-model="form.date_debut" label="Date de début" type="date" :error="errors.date_debut" required />
+        <AppInput v-model="form.date_fin" label="Date de fin" type="date" :error="errors.date_fin" />
       </div>
       <div class="grid grid-cols-2 gap-4">
-        <div>
-          <label for="date_debut" class="block mb-1 text-sm font-medium">Date de début</label>
-          <input id="date_debut" v-model="form.date_debut" type="date" required class="w-full border p-2 rounded" />
-          <p v-if="errors.date_debut" class="text-sm text-red-600 mt-1">{{ errors.date_debut[0] }}</p>
-        </div>
-        <div>
-          <label for="date_fin" class="block mb-1 text-sm font-medium">Date de fin</label>
-          <input id="date_fin" v-model="form.date_fin" type="date" class="w-full border p-2 rounded" />
-          <p v-if="errors.date_fin" class="text-sm text-red-600 mt-1">{{ errors.date_fin[0] }}</p>
-        </div>
+        <AppSelect v-model="form.frequence" label="Fréquence"
+          :options="[{ value: 'mensuel', label: 'Mensuel' }, { value: 'ponctuel', label: 'Ponctuel' }]" />
+        <AppSelect v-model="form.statut" label="Statut"
+          :options="[{ value: 'actif', label: 'Actif' }, { value: 'termine', label: 'Terminé' }, { value: 'annule', label: 'Annulé' }]" />
       </div>
-      <div class="grid grid-cols-2 gap-4">
-        <div>
-          <label for="frequence" class="block mb-1 text-sm font-medium">Fréquence</label>
-          <select id="frequence" v-model="form.frequence" class="w-full border p-2 rounded">
-            <option value="mensuel">Mensuel</option>
-            <option value="ponctuel">Ponctuel</option>
-          </select>
-        </div>
-        <div>
-          <label for="statut" class="block mb-1 text-sm font-medium">Statut</label>
-          <select id="statut" v-model="form.statut" class="w-full border p-2 rounded">
-            <option value="actif">Actif</option>
-            <option value="termine">Terminé</option>
-            <option value="annule">Annulé</option>
-          </select>
-        </div>
-      </div>
-
       <div class="flex gap-2">
-        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
-          Enregistrer
-        </button>
-        <button type="button" @click="$router.back()" class="px-4 py-2 border rounded hover:bg-gray-50 transition">
-          Annuler
-        </button>
+        <AppButton type="submit">Enregistrer</AppButton>
+        <AppButton variant="secondary" type="button" @click="$router.back()">Annuler</AppButton>
       </div>
     </form>
   </div>
@@ -83,6 +39,9 @@ import { useDeviseStore } from '@/stores/deviseStore';
 import { useRouter, useRoute } from 'vue-router';
 import Breadcrumb from '@/components/Breadcrumb.vue';
 import PageHeader from '@/components/PageHeader.vue';
+import AppInput from '@/components/AppInput.vue';
+import AppSelect from '@/components/AppSelect.vue';
+import AppButton from '@/components/AppButton.vue';
 import { useToasts } from '@/services/toast';
 import apiClient from '@/services/api';
 

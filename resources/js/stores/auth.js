@@ -8,8 +8,13 @@ export const useAuthStore = defineStore('auth', {
     }),
     getters: {
         isAuthenticated: (state) => !!state.user,
+        userRole: (state) => state.user?.role || null,
+        isAdmin: (state) => state.user?.role === 'admin',
     },
     actions: {
+        hasRole(...roles) {
+            return roles.includes(this.user?.role);
+        },
         async init() {
             try {
                 const response = await apiClient.get('/auth/me');
@@ -23,7 +28,7 @@ export const useAuthStore = defineStore('auth', {
         async login(email, password) {
             await apiClient.get('/sanctum/csrf-cookie', { baseURL: '/' });
             const response = await apiClient.post('/auth/login', { email, password });
-            this.user = response.data.data.user;
+            this.user = response.data.user;
             return this.user;
         },
         async logout() {

@@ -3,27 +3,23 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreFonctionRequest;
+use App\Http\Requests\UpdateFonctionRequest;
+use App\Http\Resources\FonctionResource;
 use App\Models\Fonction;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
 class FonctionController extends Controller
 {
-    public function index(): JsonResponse
+    public function index()
     {
-        return response()->json(Fonction::actif()->get());
+        return FonctionResource::collection(Fonction::actif()->get());
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreFonctionRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'code' => 'required|string|max:20|unique:fonctions',
-            'libelle' => 'required|string|max:100',
-            'description' => 'nullable|string',
-            'actif' => 'sometimes|boolean',
-        ]);
-
-        $fonction = Fonction::create($validated);
+        $this->authorize('create', [Fonction::class]);
+        $fonction = Fonction::create($request->validated());
         return response()->json($fonction, 201);
     }
 
@@ -32,21 +28,16 @@ class FonctionController extends Controller
         return response()->json($fonction);
     }
 
-    public function update(Request $request, Fonction $fonction): JsonResponse
+    public function update(UpdateFonctionRequest $request, Fonction $fonction): JsonResponse
     {
-        $validated = $request->validate([
-            'code' => 'required|string|max:20|unique:fonctions,code,' . $fonction->id,
-            'libelle' => 'required|string|max:100',
-            'description' => 'nullable|string',
-            'actif' => 'sometimes|boolean',
-        ]);
-
-        $fonction->update($validated);
+        $this->authorize('update', [$fonction]);
+        $fonction->update($request->validated());
         return response()->json($fonction);
     }
 
     public function destroy(Fonction $fonction): JsonResponse
     {
+        $this->authorize('delete', [$fonction]);
         $fonction->delete();
         return response()->json(null, 204);
     }

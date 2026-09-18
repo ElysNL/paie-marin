@@ -3,29 +3,24 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreCompagnieRequest;
+use App\Http\Requests\UpdateCompagnieRequest;
+use App\Http\Resources\CompagnieResource;
 use App\Models\Compagnie;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Validation\Rule;
 
 class CompagnieController extends Controller
 {
-    public function index(): JsonResponse
+    public function index()
     {
         $compagnies = Compagnie::with('pays')->orderBy('nom')->paginate(50);
-        return response()->json($compagnies);
+        return CompagnieResource::collection($compagnies);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreCompagnieRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'code' => 'required|string|max:20|unique:compagnies',
-            'nom' => 'required|string|max:100',
-            'pays_id' => 'nullable|exists:pays,id',
-            'actif' => 'sometimes|boolean',
-        ]);
-
-        $compagnie = Compagnie::create($validated);
+        $this->authorize('create', [Compagnie::class]);
+        $compagnie = Compagnie::create($request->validated());
         return response()->json($compagnie, 201);
     }
 
@@ -35,21 +30,16 @@ class CompagnieController extends Controller
         return response()->json($compagnie);
     }
 
-    public function update(Request $request, Compagnie $compagnie): JsonResponse
+    public function update(UpdateCompagnieRequest $request, Compagnie $compagnie): JsonResponse
     {
-        $validated = $request->validate([
-            'code' => ['required', 'string', 'max:20', Rule::unique('compagnies')->ignore($compagnie->id)],
-            'nom' => 'required|string|max:100',
-            'pays_id' => 'nullable|exists:pays,id',
-            'actif' => 'sometimes|boolean',
-        ]);
-
-        $compagnie->update($validated);
+        $this->authorize('update', [$compagnie]);
+        $compagnie->update($request->validated());
         return response()->json($compagnie);
     }
 
     public function destroy(Compagnie $compagnie): JsonResponse
     {
+        $this->authorize('delete', [$compagnie]);
         $compagnie->delete();
         return response()->json(null, 204);
     }

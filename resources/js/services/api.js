@@ -33,6 +33,14 @@ apiClient.interceptors.response.use(
                     }
                 }
                 notify('Session expirée. Veuillez vous reconnecter.');
+            } else if (status === 423) {
+                // Compte verrouillé
+                const auth = useAuthStore();
+                auth.user = null;
+                if (router.currentRoute.value.path !== '/login') {
+                    router.push({ path: '/login' });
+                }
+                notify(data.message || 'Compte temporairement verrouillé.');
             } else if (status === 403) {
                 notify('Action non autorisée.');
             } else if (status === 422) {

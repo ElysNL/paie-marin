@@ -32,6 +32,10 @@ import AvanceList from '@/components/Avances/List.vue';
 import AvanceForm from '@/components/Avances/Form.vue';
 import DelegationList from '@/components/Delegations/List.vue';
 import DelegationForm from '@/components/Delegations/Form.vue';
+import BanqueList from '@/components/Banques/List.vue';
+import BanqueForm from '@/components/Banques/Form.vue';
+import UserList from '@/components/Users/List.vue';
+import UserForm from '@/components/Users/Form.vue';
 
 const routes = [
   { path: '/login', name: 'login', component: Login, meta: { public: true, title: 'Connexion' } },
@@ -99,6 +103,14 @@ const routes = [
       { path: 'delegations', component: DelegationList, meta: { title: 'Délégations' } },
       { path: 'delegations/create', component: DelegationForm, meta: { title: 'Nouvelle délégation' } },
       { path: 'delegations/:id/edit', component: DelegationForm, props: true, meta: { title: 'Modifier la délégation' } },
+
+      { path: 'banques', component: BanqueList, meta: { title: 'Banques' } },
+      { path: 'banques/create', component: BanqueForm, meta: { title: 'Nouvelle banque' } },
+      { path: 'banques/:id/edit', component: BanqueForm, props: true, meta: { title: 'Modifier la banque' } },
+
+      { path: 'utilisateurs', component: UserList, meta: { title: 'Utilisateurs', roles: ['admin'] } },
+      { path: 'utilisateurs/create', component: UserForm, meta: { title: 'Nouvel utilisateur', roles: ['admin'] } },
+      { path: 'utilisateurs/:id/edit', component: UserForm, props: true, meta: { title: "Modifier l'utilisateur", roles: ['admin'] } },
     ],
   },
 ];
@@ -123,6 +135,12 @@ router.beforeEach(async (to) => {
 
   if (to.meta.public && auth.isAuthenticated) {
     return { path: '/dashboard' };
+  }
+
+  if (to.meta.roles && to.meta.roles.length > 0) {
+    if (!auth.hasRole(...to.meta.roles)) {
+      return { path: '/dashboard' };
+    }
   }
 });
 

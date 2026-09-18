@@ -3,12 +3,16 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StorePaieRequest;
+use App\Http\Requests\UpdatePaieRequest;
+use App\Http\Resources\PaieResource;
+use App\Jobs\CalculerPaieJob;
 use App\Models\Paie;
 use App\Models\AffectationMarin;
 use App\Services\CalculateurDePaie;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
 
 class PaieController extends Controller
@@ -20,35 +24,24 @@ class PaieController extends Controller
         $this->calculator = $calculator;
     }
 
-    public function index(): JsonResponse
+    public function index()
     {
-        $paies = Paie::withCount('bulletins')->orderBy('created_at', 'desc')->paginate(20);
-        return response()->json($paies);
+        $paies = Paie::withCount('bulletins')->orderBy('created_at', 'desc')->paginate(50);
+        return PaieResource::collection($paies);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StorePaieRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'num_paie' => 'required|string|max:20|unique:paies',
-            'libelle' => 'required|string|max:100',
-            'periode' => 'required|string|max:20',
-            'date_debut' => 'required|date',
-            'date_fin' => 'required|date|after_or_equal:date_debut',
-        ]);
-
-        $paie = Paie::create($validated + ['statut' => 'brouillon']);
-        return response()->json($paie, 201);
+        $paie = Paie::create($request->validated() + ['statut' => 'brouillon']);
+        return response()->json(new PaieResource($paie), 201);
     }
 
     public function show(Paie $paie): JsonResponse
     {
         $paie->load(['bulletins.employe', 'bulletins.navire']);
-        return response()->json($paie);
+        return response()->json(new PaieResource($paie));
     }
 
-    /**
-     * Affectations actives éligibles pour la période de paie.
-     */
     public function eligibles(Paie $paie): JsonResponse
     {
         $affectations = AffectationMarin::pourPeriode($paie->date_debut, $paie->date_fin)
@@ -59,84 +52,82 @@ class PaieController extends Controller
         return response()->json($affectations);
     }
 
-    public function update(Request $request, Paie $paie): JsonResponse
+    public function update(UpdatePaieRequest $request, Paie $paie): JsonResponse
     {
-        // Ne pas autoriser la modification d'une paie déjà calculée ou validée
-        if (!in_array($paie->statut, ['brouillon', 'calcule'])) {
-            return response()->json(['error' => 'Cette paie ne peut plus être modifiée.'], 422);
-        }
-
-        $validated = $request->validate([
-            'num_paie' => ['required', 'string', 'max:20', Rule::unique('paies')->ignore($paie->id)],
-            'libelle' => 'required|string|max:100',
-            'periode' => 'required|string|max:20',
-            'date_debut' => 'required|date',
-            'date_fin' => 'required|date|after_or_equal:date_debut',
-        ]);
-
-        $paie->update($validated);
-        return response()->json($paie);
+        $paie->update($request->validated());
+        return response()->json(new PaieResource($paie->fresh()));
     }
 
     public function destroy(Paie $paie): JsonResponse
     {
-        if ($paie->statut !== 'brouillon') {
-            return response()->json(['error' => 'Impossible de supprimer une paie déjà traitée.'], 422);
-        }
+        $this->authorize('delete', $paie);
         $paie->delete();
         return response()->json(null, 204);
     }
 
     /**
-     * Action personnalisée : calculer les bulletins pour cette période de paie.
+     * Calcul asynchrone des bulletins (dispatch job).
      */
     public function calculer(Paie $paie, Request $request): JsonResponse
     {
-        if ($paie->statut !== 'brouillon') {
-            return response()->json(['error' => 'Cette paie a déjà été calculée ou validée.'], 422);
+        $this->authorize('calculer', $paie);
+
+        $validated = $request->validate([
+            'navire_id' => 'nullable|exists:navires,id',
+            'employe_id' => 'nullable|exists:employes,id',
+        ]);
+
+        if ($paie->statut_calcul === 'en_cours') {
+            return response()->json(['message' => 'Un calcul est déjà en cours pour cette paie.'], 422);
         }
 
-        // Récupérer toutes les affectations actives qui couvrent la période
-        $affectations = AffectationMarin::pourPeriode($paie->date_debut, $paie->date_fin)
-                                        ->with(['employe', 'navire', 'fonction'])
-                                        ->get();
+        $job = Bus::dispatch(new CalculerPaieJob(
+            $paie->id,
+            $validated['navire_id'] ?? null,
+            $validated['employe_id'] ?? null,
+        ));
 
-        if ($affectations->isEmpty()) {
-            return response()->json(['error' => 'Aucune affectation active pour cette période.'], 422);
-        }
-
-        DB::beginTransaction();
-        try {
-            // Supprimer les anciens bulletins éventuels (recalcul)
-            $paie->bulletins()->delete();
-
-            foreach ($affectations as $affectation) {
-                $bulletin = $this->calculator->calculateBulletin($paie, $affectation);
-                // Le bulletin est automatiquement en statut 'calcule'
-            }
-
-            $paie->update(['statut' => 'calcule']);
-            DB::commit();
-
-            return response()->json([
-                'message' => 'Calcul terminé avec succès.',
-                'bulletins' => $paie->bulletins()->with('employe')->get()
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(['error' => 'Erreur lors du calcul : ' . $e->getMessage()], 500);
-        }
+        return response()->json([
+            'message' => 'Calcul lancé.',
+            'job_id' => $job->job->getId() ?? null,
+        ], 202);
     }
 
     /**
-     * Action personnalisée : valider la paie (passe en statut 'valide').
+     * Statut du calcul en cours.
      */
+    public function statutCalcul(Paie $paie): JsonResponse
+    {
+        return response()->json([
+            'statut_calcul' => $paie->statut_calcul,
+            'resultat_calcul' => $paie->resultat_calcul,
+            'version' => $paie->version,
+        ]);
+    }
+
+    /**
+     * Liste des navires avec le nombre de marins éligibles.
+     */
+    public function naviresEligibles(Paie $paie): JsonResponse
+    {
+        $navires = AffectationMarin::pourPeriode($paie->date_debut, $paie->date_fin)
+            ->actif()
+            ->with('navire')
+            ->get()
+            ->groupBy('navire_id')
+            ->map(fn ($affectations, $navireId) => [
+                'navire_id' => $navireId,
+                'navire_nom' => $affectations->first()->navire->nom ?? 'N/A',
+                'nb_marins' => $affectations->count(),
+            ])
+            ->values();
+
+        return response()->json($navires);
+    }
+
     public function valider(Paie $paie): JsonResponse
     {
-        if ($paie->statut !== 'calcule') {
-            return response()->json(['error' => 'La paie doit être calculée avant validation.'], 422);
-        }
+        $this->authorize('valider', $paie);
 
         $paie->update([
             'statut' => 'valide',
@@ -146,14 +137,9 @@ class PaieController extends Controller
         return response()->json(['message' => 'Paie validée avec succès.', 'paie' => $paie]);
     }
 
-    /**
-     * Action personnalisée : clôturer la paie (passe en 'cloture').
-     */
     public function cloturer(Paie $paie): JsonResponse
     {
-        if ($paie->statut !== 'valide') {
-            return response()->json(['error' => 'La paie doit être validée avant clôture.'], 422);
-        }
+        $this->authorize('cloturer', $paie);
 
         $paie->update([
             'statut' => 'cloture',

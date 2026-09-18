@@ -2,49 +2,21 @@
   <div class="max-w-xl">
     <Breadcrumb :items="crumbs" />
     <PageHeader :title="headerTitle" />
-
     <form @submit.prevent="submit" class="space-y-4">
-      <div>
-        <label for="employe_id" class="block mb-1 text-sm font-medium">Employé</label>
-        <select id="employe_id" v-model="form.employe_id" required class="w-full border p-2 rounded">
-          <option :value="null" disabled>-- Sélectionner --</option>
-          <option v-for="e in employes" :key="e.id" :value="e.id">{{ e.nom }} {{ e.prenom }}</option>
-        </select>
-        <p v-if="errors.employe_id" class="text-sm text-red-600 mt-1">{{ errors.employe_id[0] }}</p>
-      </div>
-      <div>
-        <label for="date_avance" class="block mb-1 text-sm font-medium">Date de l'avance</label>
-        <input id="date_avance" v-model="form.date_avance" type="date" required class="w-full border p-2 rounded" />
-        <p v-if="errors.date_avance" class="text-sm text-red-600 mt-1">{{ errors.date_avance[0] }}</p>
-      </div>
+      <AppSelect v-model="form.employe_id" label="Employé" placeholder="-- Sélectionner --"
+        :options="employes.map(e => ({ value: e.id, label: e.nom + ' ' + e.prenom }))"
+        :error="errors.employe_id" required />
+      <AppInput v-model="form.date_avance" label="Date de l'avance" type="date" :error="errors.date_avance" required />
       <div class="grid grid-cols-2 gap-4">
-        <div>
-          <label for="montant" class="block mb-1 text-sm font-medium">Montant</label>
-          <input id="montant" v-model.number="form.montant" type="number" min="0" step="0.01" required
-                 class="w-full border p-2 rounded" />
-          <p v-if="errors.montant" class="text-sm text-red-600 mt-1">{{ errors.montant[0] }}</p>
-        </div>
-        <div>
-          <label for="devise_id" class="block mb-1 text-sm font-medium">Devise</label>
-          <select id="devise_id" v-model="form.devise_id" class="w-full border p-2 rounded">
-            <option :value="null">-- Sélectionner --</option>
-            <option v-for="d in devises" :key="d.id" :value="d.id">{{ d.code }}</option>
-          </select>
-          <p v-if="errors.devise_id" class="text-sm text-red-600 mt-1">{{ errors.devise_id[0] }}</p>
-        </div>
+        <AppInput v-model.number="form.montant" label="Montant" type="number" min="0" step="0.01" :error="errors.montant" required />
+        <AppSelect v-model="form.devise_id" label="Devise" placeholder="-- Sélectionner --"
+          :options="devises.map(d => ({ value: d.id, label: d.code }))"
+          :error="errors.devise_id" />
       </div>
-      <div>
-        <label for="motif" class="block mb-1 text-sm font-medium">Motif</label>
-        <input id="motif" v-model="form.motif" class="w-full border p-2 rounded" />
-      </div>
-
+      <AppInput v-model="form.motif" label="Motif" :error="errors.motif" />
       <div class="flex gap-2">
-        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
-          Enregistrer
-        </button>
-        <button type="button" @click="$router.back()" class="px-4 py-2 border rounded hover:bg-gray-50 transition">
-          Annuler
-        </button>
+        <AppButton type="submit">Enregistrer</AppButton>
+        <AppButton variant="secondary" type="button" @click="$router.back()">Annuler</AppButton>
       </div>
     </form>
   </div>
@@ -58,6 +30,9 @@ import { useDeviseStore } from '@/stores/deviseStore';
 import { useRouter, useRoute } from 'vue-router';
 import Breadcrumb from '@/components/Breadcrumb.vue';
 import PageHeader from '@/components/PageHeader.vue';
+import AppInput from '@/components/AppInput.vue';
+import AppSelect from '@/components/AppSelect.vue';
+import AppButton from '@/components/AppButton.vue';
 import { useToasts } from '@/services/toast';
 import apiClient from '@/services/api';
 

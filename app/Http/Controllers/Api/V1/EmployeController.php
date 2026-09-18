@@ -3,77 +3,46 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreEmployeRequest;
+use App\Http\Requests\UpdateEmployeRequest;
+use App\Http\Resources\EmployeResource;
 use App\Models\Employe;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Validation\Rule;
 
 class EmployeController extends Controller
 {
-    public function index(): JsonResponse
+    public function index()
     {
         $employes = Employe::with(['nationalite', 'banque'])
                              ->orderBy('nom')
                              ->paginate(50);
-        return response()->json($employes);
+        return EmployeResource::collection($employes);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreEmployeRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'matricule' => 'required|string|max:50|unique:employes',
-            'nom' => 'required|string|max:100',
-            'prenom' => 'required|string|max:100',
-            'date_naissance' => 'nullable|date',
-            'lieu_naissance' => 'nullable|string|max:100',
-            'nationalite_id' => 'nullable|exists:pays,id',
-            'adresse' => 'nullable|string',
-            'telephone' => 'nullable|string|max:20',
-            'email' => 'nullable|email|max:100',
-            'cin' => 'nullable|string|max:50',
-            'banque_id' => 'nullable|exists:banques,id',
-            'compte_bancaire' => 'nullable|string|max:50',
-            'date_embauche' => 'nullable|date',
-            'nbre_charges' => 'nullable|integer|min:0',
-            'actif' => 'sometimes|boolean',
-        ]);
-
-        $employe = Employe::create($validated);
+        $this->authorize('create', Employe::class);
+        $employe = Employe::create($request->validated());
         return response()->json($employe, 201);
     }
 
     public function show(Employe $employe): JsonResponse
     {
+        $this->authorize('view', $employe);
         $employe->load(['nationalite', 'banque', 'affectations.navire', 'affectations.fonction']);
         return response()->json($employe);
     }
 
-    public function update(Request $request, Employe $employe): JsonResponse
+    public function update(UpdateEmployeRequest $request, Employe $employe): JsonResponse
     {
-        $validated = $request->validate([
-            'matricule' => ['required', 'string', 'max:50', Rule::unique('employes')->ignore($employe->id)],
-            'nom' => 'required|string|max:100',
-            'prenom' => 'required|string|max:100',
-            'date_naissance' => 'nullable|date',
-            'lieu_naissance' => 'nullable|string|max:100',
-            'nationalite_id' => 'nullable|exists:pays,id',
-            'adresse' => 'nullable|string',
-            'telephone' => 'nullable|string|max:20',
-            'email' => 'nullable|email|max:100',
-            'cin' => 'nullable|string|max:50',
-            'banque_id' => 'nullable|exists:banques,id',
-            'compte_bancaire' => 'nullable|string|max:50',
-            'date_embauche' => 'nullable|date',
-            'nbre_charges' => 'nullable|integer|min:0',
-            'actif' => 'sometimes|boolean',
-        ]);
-
-        $employe->update($validated);
+        $this->authorize('update', $employe);
+        $employe->update($request->validated());
         return response()->json($employe);
     }
 
     public function destroy(Employe $employe): JsonResponse
     {
+        $this->authorize('delete', $employe);
         $employe->delete();
         return response()->json(null, 204);
     }

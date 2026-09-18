@@ -1,72 +1,104 @@
 <template>
   <div>
     <Breadcrumb :items="crumbs" />
-    <PageHeader title="Affectations">
-      <template #action>
-        <button @click="goToCreate" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">Nouvelle affectation</button>
-      </template>
-    </PageHeader>
+    <div class="mb-6 flex items-center justify-between">
+      <h1 class="text-2xl font-bold">Affectations</h1>
+      <router-link to="/affectations/create">
+        <AppButton>Nouvelle affectation</AppButton>
+      </router-link>
+    </div>
 
-    <table class="w-full border-collapse">
-      <thead>
-        <tr class="bg-gray-100 text-left">
-          <th class="p-2 border">Employé</th>
-          <th class="p-2 border">Navire</th>
-          <th class="p-2 border">Fonction</th>
-          <th class="p-2 border">Date embarquement</th>
-          <th class="p-2 border">Taux journalier</th>
-          <th class="p-2 border">Statut</th>
-          <th class="p-2 border">Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="affectation in affectations" :key="affectation.id">
-          <td class="p-2 border">{{ affectation.employe?.nom }} {{ affectation.employe?.prenom }}</td>
-          <td class="p-2 border">{{ affectation.navire?.nom }}</td>
-          <td class="p-2 border">{{ affectation.fonction?.libelle }}</td>
-          <td class="p-2 border">{{ affectation.date_embt }}</td>
-          <td class="p-2 border">{{ affectation.taux_journalier }}</td>
-          <td class="p-2 border">{{ affectation.statut }}</td>
-          <td class="p-2 border">
-            <button @click="edit(affectation.id)" class="text-blue-600 mr-2">Modifier</button>
-            <button @click="remove(affectation.id)" class="text-red-600">Supprimer</button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <AppCard>
+      <div class="mb-4">
+        <input
+          v-model="search"
+          type="text"
+          placeholder="Rechercher par employé ou navire…"
+          class="w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+          @input="debouncedFetch"
+        />
+      </div>
 
-    <Pagination
-      :current="pagination?.current_page"
-      :last="pagination?.last_page"
-      @page-change="fetchAffectations"
-    />
+      <AppTable :columns="columns" :rows="store.affectations" row-key="id">
+        <template #cell(employe)="{ row }">{{ row.employe?.nom }} {{ row.employe?.prenom }}</template>
+        <template #cell(navire)="{ row }">{{ row.navire?.nom }}</template>
+        <template #cell(fonction)="{ row }">{{ row.fonction?.libelle }}</template>
+        <template #cell(date_embt)="{ row }">{{ row.date_embt }}</template>
+        <template #cell(taux_journalier)="{ row }">{{ row.taux_journalier }}</template>
+        <template #cell(statut)="{ row }"><AppBadge :statut="row.statut" /></template>
+        <template #cell(actions)="{ row }">
+          <div class="flex items-center gap-1">
+            <router-link :to="`/affectations/${row.id}/edit`">
+              <AppButton variant="text" class="!px-2 !py-1">Modifier</AppButton>
+            </router-link>
+            <AppButton variant="text" class="!px-2 !py-1 !text-red-600 hover:!bg-red-50" @click="remove(row)">
+              Supprimer
+            </AppButton>
+          </div>
+        </template>
+      </AppTable>
+
+      <Pagination
+        v-if="store.pagination"
+        :current="store.pagination.current_page"
+        :last="store.pagination.last_page"
+        @page-change="goToPage"
+      />
+
+      <AppEmpty v-if="!loading && store.affectations.length === 0" message="Aucune affectation enregistrée." />
+      <AppLoading v-if="loading" message="Chargement des affectations…" />
+    </AppCard>
   </div>
 </template>
 
 <script setup>
-import { onMounted, computed } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useAffectationStore } from '@/stores/affectationStore';
-import { useRouter } from 'vue-router';
-import Pagination from '@/components/Pagination.vue';
 import Breadcrumb from '@/components/Breadcrumb.vue';
-import PageHeader from '@/components/PageHeader.vue';
+import AppCard from '@/components/AppCard.vue';
+import AppTable from '@/components/AppTable.vue';
+import AppButton from '@/components/AppButton.vue';
+import AppBadge from '@/components/AppBadge.vue';
+import AppEmpty from '@/components/AppEmpty.vue';
+import AppLoading from '@/components/AppLoading.vue';
+import Pagination from '@/components/Pagination.vue';
 
 const store = useAffectationStore();
-const router = useRouter();
 const crumbs = [{ label: 'Tableau de bord', to: '/dashboard' }, { label: 'Affectations' }];
+const loading = ref(false);
+const search = ref('');
 
-const affectations = computed(() => store.affectations);
-const pagination = computed(() => store.pagination);
+const columns = [
+  { key: 'employe', label: 'Employé' },
+  { key: 'navire', label: 'Navire' },
+  { key: 'fonction', label: 'Fonction' },
+  { key: 'date_embt', label: 'Date embarquement' },
+  { key: 'taux_journalier', label: 'Taux journalier' },
+  { key: 'statut', label: 'Statut' },
+  { key: 'actions', label: 'Actions', align: 'right' },
+];
 
-const fetchAffectations = (page = 1) => store.fetchAffectations(page);
-const goToCreate = () => router.push('/affectations/create');
-const edit = (id) => router.push(`/affectations/${id}/edit`);
+let debounceTimer = null;
+const debouncedFetch = () => {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(fetchData, 300);
+};
 
-const remove = async (id) => {
-  if (confirm('Voulez-vous supprimer cette affectation ?')) {
-    await store.deleteAffectation(id);
+const fetchData = async (page = 1) => {
+  loading.value = true;
+  try {
+    await store.fetchAffectations(page);
+  } finally {
+    loading.value = false;
   }
 };
 
-onMounted(() => fetchAffectations());
+const goToPage = (page) => fetchData(page);
+
+const remove = async (row) => {
+  if (!confirm('Voulez-vous supprimer cette affectation ?')) return;
+  await store.deleteAffectation(row.id);
+};
+
+onMounted(() => fetchData());
 </script>

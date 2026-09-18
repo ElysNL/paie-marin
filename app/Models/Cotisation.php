@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Cotisation extends Model
 {
@@ -26,7 +27,7 @@ class Cotisation extends Model
         'actif' => 'boolean',
     ];
 
-    public function bulletinsCotisations()
+    public function bulletinsCotisations(): HasMany
     {
         return $this->hasMany(BulletinCotisation::class);
     }

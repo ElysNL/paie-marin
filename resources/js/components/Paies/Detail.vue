@@ -2,7 +2,7 @@
   <div>
     <Breadcrumb :items="crumbs" />
 
-    <div v-if="store.loading && !paie" class="py-8 text-center text-gray-500">Chargement…</div>
+    <AppLoading v-if="store.loading && !paie" message="Chargement de la paie…" />
 
     <template v-else-if="paie">
       <PageHeader
@@ -10,121 +10,127 @@
         :subtitle="`${paie.num_paie} · ${paie.periode} · ${formatDate(paie.date_debut)} → ${formatDate(paie.date_fin)}`"
       >
         <template #action>
-          <span class="px-2 py-1 rounded text-xs font-semibold"
-                :class="statutBadge[paie.statut] || 'bg-gray-200 text-gray-700'">
-            {{ statutLibelle[paie.statut] || paie.statut }}
-          </span>
+          <AppBadge :statut="paie.statut" />
           <template v-if="paie.statut === 'brouillon'">
-            <button @click="goEdit" class="px-3 py-2 border rounded hover:bg-gray-50 transition">Modifier</button>
-            <button @click="runCalculer" :disabled="calculerLoading"
-                    class="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition disabled:opacity-40">
-              {{ calculerLoading ? 'Calcul…' : 'Calculer les bulletins' }}
-            </button>
+            <AppButton variant="secondary" @click="goEdit">Modifier</AppButton>
           </template>
-          <button v-if="paie.statut === 'calcule'" @click="runValider" :disabled="actionLoading"
-                  class="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition disabled:opacity-40">
+          <AppButton v-if="paie.statut === 'calcule'" :loading="actionLoading" @click="runValider">
             Valider la paie
-          </button>
-          <button v-if="paie.statut === 'valide'" @click="runCloturer" :disabled="actionLoading"
-                  class="px-3 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition disabled:opacity-40">
+          </AppButton>
+          <AppButton v-if="paie.statut === 'valide'" variant="secondary" :loading="actionLoading" @click="runCloturer">
             Clôturer la paie
-          </button>
+          </AppButton>
         </template>
       </PageHeader>
 
       <template v-if="paie.statut === 'brouillon'">
         <section class="mb-6">
-          <h2 class="text-lg font-semibold mb-2">Marins éligibles pour cette période</h2>
-          <button @click="loadEligibles" class="mb-3 text-sm text-blue-600 hover:underline">
+          <h2 class="mb-4 text-lg font-semibold">Calculer les bulletins</h2>
+
+          <div v-if="calculEnCours" class="mb-6 rounded-xl border border-primary/20 bg-primary/5 p-4">
+            <div class="mb-3 flex items-center gap-3">
+              <svg class="h-5 w-5 animate-spin text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+              </svg>
+              <span class="font-medium text-primary">{{ calculMessage }}</span>
+            </div>
+            <div class="h-2 w-full overflow-hidden rounded-full bg-primary/20">
+              <div class="h-full rounded-full bg-primary transition-all duration-500"
+                   :style="{ width: progressPercent + '%' }"></div>
+            </div>
+          </div>
+
+          <div v-if="calculErreur" class="mb-6 rounded-xl border border-error/20 bg-error/5 p-4 text-error">
+            {{ calculErreur }}
+          </div>
+
+          <AppLoading v-if="naviresLoading" message="Chargement des navires éligibles…" />
+
+          <AppTable v-else-if="naviresEligibles.length > 0 && !calculEnCours" :columns="naviresColumns" :rows="naviresEligibles" row-key="navire_id">
+            <template #cell(navire_nom)="{ row }" class="font-medium">{{ row.navire_nom }}</template>
+            <template #cell(nb_marins)="{ row }" class="text-center">{{ row.nb_marins }} marin(s)</template>
+            <template #cell(action)="{ row }">
+              <AppButton :loading="calculEnCours" @click="calculerNavire(row.navire_id)">Calculer</AppButton>
+            </template>
+            <template #cell(total)="{}">
+              <span class="font-medium">{{ totalMarins }} marin(s)</span>
+            </template>
+          </AppTable>
+
+          <div v-if="naviresEligibles.length > 0 && !calculEnCours" class="mt-3 flex justify-end">
+            <AppButton variant="secondary" :loading="calculEnCours" @click="calculerTous()">Tout calculer</AppButton>
+          </div>
+
+          <AppEmpty v-if="!naviresEligibles.length && !calculEnCours" message="Aucune affectation active ne couvre cette période. Ajoutez des affectations avant de calculer." />
+        </section>
+      </template>
+
+      <template v-if="paie.statut === 'brouillon'">
+        <section class="mb-6">
+          <h2 class="mb-2 text-lg font-semibold">Marins éligibles pour cette période</h2>
+          <button @click="loadEligibles" class="mb-3 text-sm text-primary hover:underline">
             {{ eligibles.length ? 'Rafraîchir' : 'Afficher les marins éligibles' }}
           </button>
 
-          <div v-if="eligiblesLoading" class="text-gray-500 text-sm">Chargement…</div>
-          <div v-else-if="eligibles.length === 0" class="text-gray-500 text-sm">
-            Aucune affectation active ne couvre cette période. Ajoutez des affectations avant de calculer.
-          </div>
-          <div v-else class="overflow-x-auto">
-            <table class="w-full border-collapse text-sm">
-              <thead>
-                <tr class="bg-gray-100 text-left">
-                  <th class="p-2 border">Employé</th>
-                  <th class="p-2 border">Navire</th>
-                  <th class="p-2 border">Fonction</th>
-                  <th class="p-2 border">Taux journalier</th>
-                  <th class="p-2 border">Période</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="a in eligibles" :key="a.id" class="hover:bg-gray-50">
-                  <td class="p-2 border">{{ a.employe?.nom }} {{ a.employe?.prenom }}</td>
-                  <td class="p-2 border">{{ a.navire?.nom }}</td>
-                  <td class="p-2 border">{{ a.fonction?.nom }}</td>
-                  <td class="p-2 border">{{ formatMoney(a.taux_journalier, a.contrat_armateur?.devise?.code) }}</td>
-                  <td class="p-2 border">{{ formatDate(a.date_embt) }} → {{ formatDate(a.date_debt) }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <p class="text-gray-500 text-sm mt-2">
-            {{ eligibles.length }} marin(s) seront inclus dans le calcul.
-          </p>
+          <AppLoading v-if="eligiblesLoading" />
+
+          <template v-else-if="eligibles.length > 0">
+            <AppTable :columns="eligiblesColumns" :rows="eligibles">
+              <template #cell(employe)="{ row }">{{ row.employe?.nom }} {{ row.employe?.prenom }}</template>
+              <template #cell(navire)="{ row }">{{ row.navire?.nom }}</template>
+              <template #cell(fonction)="{ row }">{{ row.fonction?.libelle }}</template>
+              <template #cell(taux_journalier)="{ row }">{{ formatMoney(row.taux_journalier, row.contrat_armateur?.devise?.code) }}</template>
+              <template #cell(periode)="{ row }">{{ formatDate(row.date_embt) }} → {{ formatDate(row.date_debt) }}</template>
+            </AppTable>
+            <p class="mt-2 text-sm text-on-surface-variant/70">
+              {{ eligibles.length }} marin(s) seront inclus dans le calcul.
+            </p>
+          </template>
         </section>
       </template>
 
       <section>
-        <h2 class="text-lg font-semibold mb-2">Bulletins ({{ paie.bulletins?.length || 0 }})</h2>
-        <div class="flex gap-2 mb-3">
-          <button @click="$router.push('/bulletins?paie_id=' + paie.id)" class="text-sm text-blue-600 hover:underline">
+        <h2 class="mb-2 text-lg font-semibold">Bulletins ({{ paie.bulletins?.length || 0 }})</h2>
+        <div class="mb-3 flex gap-2">
+          <button @click="$router.push('/bulletins?paie_id=' + paie.id)" class="text-sm text-primary hover:underline">
             Tout voir dans la liste des bulletins
           </button>
         </div>
 
-        <div v-if="paie.bulletins?.length" class="overflow-x-auto">
-          <table class="w-full border-collapse text-sm">
-            <thead>
-              <tr class="bg-gray-100 text-left">
-                <th class="p-2 border">Employé</th>
-                <th class="p-2 border">Navire</th>
-                <th class="p-2 border">Jours</th>
-                <th class="p-2 border">Brut</th>
-                <th class="p-2 border">Retenues</th>
-                <th class="p-2 border">Net à payer</th>
-                <th class="p-2 border">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="b in paie.bulletins" :key="b.id" class="hover:bg-gray-50">
-                <td class="p-2 border">{{ b.employe?.nom }} {{ b.employe?.prenom }}</td>
-                <td class="p-2 border">{{ b.navire?.nom }}</td>
-                <td class="p-2 border">{{ b.total_jours }}</td>
-                <td class="p-2 border text-right">{{ formatMoney(b.total_brut) }}</td>
-                <td class="p-2 border text-right">{{ formatMoney(b.total_retenues) }}</td>
-                <td class="p-2 border text-right font-semibold">{{ formatMoney(b.net_a_payer) }}</td>
-                <td class="p-2 border">
-                  <button @click="$router.push('/bulletins/' + b.id)" class="text-green-600 hover:underline">
-                    Voir le bulletin
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <p v-else class="text-gray-500 text-sm">
-          Aucun bulletin pour le moment. Lancez le calcul pour générer les bulletins.
-        </p>
+        <AppTable v-if="paie.bulletins?.length" :columns="bulletinsColumns" :rows="paie.bulletins">
+          <template #cell(employe)="{ row }">{{ row.employe?.nom }} {{ row.employe?.prenom }}</template>
+          <template #cell(navire)="{ row }">{{ row.navire?.nom }}</template>
+          <template #cell(total_jours)="{ row }">{{ row.total_jours }}</template>
+          <template #cell(total_brut)="{ row }" class="text-right">{{ formatMoney(row.total_brut) }}</template>
+          <template #cell(total_retenues)="{ row }" class="text-right">{{ formatMoney(row.total_retenues) }}</template>
+          <template #cell(net_a_payer)="{ row }" class="text-right font-semibold">{{ formatMoney(row.net_a_payer) }}</template>
+          <template #cell(actions)="{ row }">
+            <button @click="$router.push('/bulletins/' + row.id)" class="text-sm text-secondary hover:underline">
+              Voir le bulletin
+            </button>
+          </template>
+        </AppTable>
+        <AppEmpty v-else message="Aucun bulletin pour le moment. Lancez le calcul pour générer les bulletins." />
       </section>
     </template>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { usePaieStore } from '@/stores/paieStore';
 import { useToasts } from '@/services/toast';
 import Breadcrumb from '@/components/Breadcrumb.vue';
 import PageHeader from '@/components/PageHeader.vue';
-import { formatMoney, formatDate, statutBadge, statutLibelle } from '@/utils/format';
+import AppBadge from '@/components/AppBadge.vue';
+import AppButton from '@/components/AppButton.vue';
+import AppTable from '@/components/AppTable.vue';
+import AppCard from '@/components/AppCard.vue';
+import AppLoading from '@/components/AppLoading.vue';
+import AppEmpty from '@/components/AppEmpty.vue';
+import { formatMoney, formatDate } from '@/utils/format';
 
 const store = usePaieStore();
 const router = useRouter();
@@ -133,6 +139,11 @@ const { success, error } = useToasts();
 
 const paie = computed(() => store.currentPaie);
 const eligibles = computed(() => store.eligibles);
+const naviresEligibles = computed(() => store.naviresEligibles);
+
+const totalMarins = computed(() =>
+  naviresEligibles.value.reduce((sum, n) => sum + n.nb_marins, 0)
+);
 
 const crumbs = computed(() => [
   { label: 'Tableau de bord', to: '/dashboard' },
@@ -140,9 +151,39 @@ const crumbs = computed(() => [
   { label: paie.value?.num_paie || 'Paie' },
 ]);
 
-const calculerLoading = ref(false);
 const actionLoading = ref(false);
 const eligiblesLoading = ref(false);
+const naviresLoading = ref(false);
+const calculEnCours = ref(false);
+const calculMessage = ref('');
+const calculErreur = ref('');
+const progressPercent = ref(0);
+
+let pollTimer = null;
+
+const naviresColumns = [
+  { key: 'navire_nom', label: 'Navire' },
+  { key: 'nb_marins', label: 'Marins éligibles', align: 'center' },
+  { key: 'action', label: 'Action', align: 'center' },
+];
+
+const eligiblesColumns = [
+  { key: 'employe', label: 'Employé' },
+  { key: 'navire', label: 'Navire' },
+  { key: 'fonction', label: 'Fonction' },
+  { key: 'taux_journalier', label: 'Taux journalier' },
+  { key: 'periode', label: 'Période' },
+];
+
+const bulletinsColumns = [
+  { key: 'employe', label: 'Employé' },
+  { key: 'navire', label: 'Navire' },
+  { key: 'total_jours', label: 'Jours' },
+  { key: 'total_brut', label: 'Brut', align: 'right' },
+  { key: 'total_retenues', label: 'Retenues', align: 'right' },
+  { key: 'net_a_payer', label: 'Net à payer', align: 'right' },
+  { key: 'actions', label: 'Actions', align: 'right' },
+];
 
 const loadEligibles = async () => {
   eligiblesLoading.value = true;
@@ -153,19 +194,80 @@ const loadEligibles = async () => {
   }
 };
 
+const loadNaviresEligibles = async () => {
+  naviresLoading.value = true;
+  try {
+    await store.fetchNaviresEligibles(route.params.id);
+  } finally {
+    naviresLoading.value = false;
+  }
+};
+
 const goEdit = () => router.push(`/paies/${route.params.id}/edit`);
 
-const runCalculer = async () => {
-  if (!confirm('Calculer les bulletins de tous les marins éligibles ? Les anciens bulletins seront recalculés.')) return;
-  calculerLoading.value = true;
+const startPolling = () => {
+  progressPercent.value = 20;
+  pollTimer = setInterval(async () => {
+    try {
+      const data = await store.fetchStatutCalcul(route.params.id);
+      if (data.statut_calcul === 'termine') {
+        clearInterval(pollTimer);
+        pollTimer = null;
+        calculEnCours.value = false;
+        progressPercent.value = 100;
+        const nb = data.resultat_calcul?.nb_bulletins ?? 0;
+        calculMessage.value = `${nb} bulletin(s) calculé(s).`;
+        success(`Calcul terminé — ${nb} bulletin(s).`);
+        await store.fetchPaie(route.params.id);
+        await loadNaviresEligibles();
+      } else if (data.statut_calcul === 'erreur') {
+        clearInterval(pollTimer);
+        pollTimer = null;
+        calculEnCours.value = false;
+        calculErreur.value = data.resultat_calcul?.erreur || 'Erreur lors du calcul.';
+        error(calculErreur.value);
+      } else {
+        progressPercent.value = Math.min(progressPercent.value + 10, 90);
+      }
+    } catch {
+      // continuer à poller
+    }
+  }, 2000);
+};
+
+const calculerNavire = async (navireId) => {
+  calculEnCours.value = true;
+  calculErreur.value = '';
+  calculMessage.value = 'Lancement du calcul…';
+  progressPercent.value = 10;
   try {
-    const result = await store.calculer(route.params.id);
-    success(result.message || 'Calcul terminé.');
-    await store.fetchPaie(route.params.id);
+    await store.calculer(route.params.id, { navire_id: navireId });
+    calculMessage.value = 'Calcul en cours…';
+    startPolling();
   } catch (e) {
-    if (e.response?.data?.error) error(e.response.data.error);
-  } finally {
-    calculerLoading.value = false;
+    calculEnCours.value = false;
+    if (e.response?.data?.error) {
+      calculErreur.value = e.response.data.error;
+      error(e.response.data.error);
+    }
+  }
+};
+
+const calculerTous = async () => {
+  calculEnCours.value = true;
+  calculErreur.value = '';
+  calculMessage.value = 'Lancement du calcul global…';
+  progressPercent.value = 10;
+  try {
+    await store.calculer(route.params.id);
+    calculMessage.value = 'Calcul en cours…';
+    startPolling();
+  } catch (e) {
+    calculEnCours.value = false;
+    if (e.response?.data?.error) {
+      calculErreur.value = e.response.data.error;
+      error(e.response.data.error);
+    }
   }
 };
 
@@ -195,6 +297,18 @@ const runCloturer = async () => {
 
 onMounted(async () => {
   await store.fetchPaie(route.params.id);
-  if (paie.value?.statut === 'brouillon') loadEligibles();
+  if (paie.value?.statut === 'brouillon') {
+    loadEligibles();
+    loadNaviresEligibles();
+    if (paie.value?.statut_calcul === 'en_cours') {
+      calculEnCours.value = true;
+      calculMessage.value = 'Calcul en cours…';
+      startPolling();
+    }
+  }
+});
+
+onUnmounted(() => {
+  if (pollTimer) clearInterval(pollTimer);
 });
 </script>

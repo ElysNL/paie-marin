@@ -3,87 +3,47 @@
     <Breadcrumb :items="crumbs" />
     <PageHeader :title="headerTitle" />
     <form @submit.prevent="submit" class="space-y-4">
-      <div>
-        <label for="matricule" class="block mb-1 text-sm font-medium">Matricule</label>
-        <input id="matricule" v-model="form.matricule" required class="w-full border p-2 rounded" />
-        <p v-if="errors.matricule" class="text-sm text-red-600 mt-1">{{ errors.matricule[0] }}</p>
+      <AppInput v-model="form.matricule" label="Matricule" :error="errors.matricule" required />
+      <div class="grid grid-cols-3 gap-4">
+        <AppInput v-model="form.num_lpm" label="N° LPM" :error="errors.num_lpm" />
+        <AppInput v-model="form.num_cnaps" label="N° CNAPS" :error="errors.num_cnaps" />
+        <AppInput v-model="form.visa_contrat" label="N° Visa Contrat" :error="errors.visa_contrat" />
       </div>
       <div class="grid grid-cols-2 gap-4">
-        <div>
-          <label for="nom" class="block mb-1 text-sm font-medium">Nom</label>
-          <input id="nom" v-model="form.nom" required class="w-full border p-2 rounded" />
-          <p v-if="errors.nom" class="text-sm text-red-600 mt-1">{{ errors.nom[0] }}</p>
-        </div>
-        <div>
-          <label for="prenom" class="block mb-1 text-sm font-medium">Prénom</label>
-          <input id="prenom" v-model="form.prenom" required class="w-full border p-2 rounded" />
-          <p v-if="errors.prenom" class="text-sm text-red-600 mt-1">{{ errors.prenom[0] }}</p>
-        </div>
+        <AppInput v-model="form.nom" label="Nom" :error="errors.nom" required />
+        <AppInput v-model="form.prenom" label="Prénom" :error="errors.prenom" required />
       </div>
       <div class="grid grid-cols-2 gap-4">
-        <div>
-          <label for="date_naissance" class="block mb-1 text-sm font-medium">Date de naissance</label>
-          <input id="date_naissance" v-model="form.date_naissance" type="date" class="w-full border p-2 rounded" />
-        </div>
-        <div>
-          <label for="cin" class="block mb-1 text-sm font-medium">CIN</label>
-          <input id="cin" v-model="form.cin" class="w-full border p-2 rounded" />
-        </div>
+        <AppInput v-model="form.date_naissance" label="Date de naissance" type="date" :error="errors.date_naissance" />
+        <AppInput v-model="form.cin" label="CIN" :error="errors.cin" />
       </div>
-      <div>
-        <label for="nationalite_id" class="block mb-1 text-sm font-medium">Nationalité</label>
-        <select id="nationalite_id" v-model="form.nationalite_id" class="w-full border p-2 rounded">
-          <option :value="null">-- Sélectionner --</option>
-          <option v-for="pays in paysList" :key="pays.id" :value="pays.id">{{ pays.nom }}</option>
-        </select>
-      </div>
-      <div>
-        <label for="adresse" class="block mb-1 text-sm font-medium">Adresse</label>
-        <textarea id="adresse" v-model="form.adresse" class="w-full border p-2 rounded"></textarea>
+      <AppSelect v-model="form.nationalite_id" label="Nationalité" placeholder="-- Sélectionner --"
+        :options="paysList.map(p => ({ value: p.id, label: p.nom }))" :error="errors.nationalite_id" />
+      <div class="mb-4">
+        <label class="mb-1.5 block text-sm font-medium text-on-surface-variant">Adresse</label>
+        <textarea v-model="form.adresse" class="w-full rounded-xl border border-outline bg-surface-container px-4 py-3 text-on-surface outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"></textarea>
       </div>
       <div class="grid grid-cols-2 gap-4">
-        <div>
-          <label for="telephone" class="block mb-1 text-sm font-medium">Téléphone</label>
-          <input id="telephone" v-model="form.telephone" class="w-full border p-2 rounded" />
-        </div>
-        <div>
-          <label for="email" class="block mb-1 text-sm font-medium">Email</label>
-          <input id="email" v-model="form.email" type="email" class="w-full border p-2 rounded" />
-        </div>
+        <AppInput v-model="form.telephone" label="Téléphone" :error="errors.telephone" />
+        <AppInput v-model="form.email" label="Email" type="email" :error="errors.email" />
       </div>
       <div class="grid grid-cols-2 gap-4">
-        <div>
-          <label for="banque_id" class="block mb-1 text-sm font-medium">Banque</label>
-          <select id="banque_id" v-model="form.banque_id" class="w-full border p-2 rounded">
-            <option :value="null">-- Sélectionner --</option>
-            <option v-for="b in banques" :key="b.id" :value="b.id">{{ b.nom }}</option>
-          </select>
-        </div>
-        <div>
-          <label for="compte_bancaire" class="block mb-1 text-sm font-medium">Compte bancaire</label>
-          <input id="compte_bancaire" v-model="form.compte_bancaire" class="w-full border p-2 rounded" />
-        </div>
+        <AppSelect v-model="form.banque_id" label="Banque" placeholder="-- Sélectionner --"
+          :options="banques.map(b => ({ value: b.id, label: b.nom }))" :error="errors.banque_id" />
+        <AppInput v-model="form.compte_bancaire" label="Compte bancaire" :error="errors.compte_bancaire" />
       </div>
       <div class="grid grid-cols-2 gap-4">
-        <div>
-          <label for="date_embauche" class="block mb-1 text-sm font-medium">Date d'embauche</label>
-          <input id="date_embauche" v-model="form.date_embauche" type="date" class="w-full border p-2 rounded" />
-        </div>
-        <div>
-          <label for="nbre_charges" class="block mb-1 text-sm font-medium">Nombre de charges</label>
-          <input id="nbre_charges" v-model.number="form.nbre_charges" type="number" min="0" step="1"
-                 class="w-full border p-2 rounded" />
-          <p v-if="errors.nbre_charges" class="text-sm text-red-600 mt-1">{{ errors.nbre_charges[0] }}</p>
-        </div>
+        <AppInput v-model="form.date_embauche" label="Date d'embauche" type="date" :error="errors.date_embauche" />
+        <AppInput v-model.number="form.nbre_charges" label="Nombre de charges" type="number" min="0" step="1" :error="errors.nbre_charges" />
       </div>
-      <div>
-        <label for="actif" class="inline-flex items-center gap-2 text-sm font-medium">
-          <input id="actif" v-model="form.actif" type="checkbox" /> Actif
+      <div class="mb-4">
+        <label class="inline-flex items-center gap-2 text-sm font-medium text-on-surface-variant">
+          <input v-model="form.actif" type="checkbox" class="h-4 w-4 rounded border-outline text-primary focus:ring-primary/20" /> Actif
         </label>
       </div>
       <div class="flex gap-2">
-        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">Enregistrer</button>
-        <button type="button" @click="$router.back()" class="px-4 py-2 border rounded hover:bg-gray-50 transition">Annuler</button>
+        <AppButton type="submit">Enregistrer</AppButton>
+        <AppButton variant="secondary" type="button" @click="$router.back()">Annuler</AppButton>
       </div>
     </form>
   </div>
@@ -98,6 +58,9 @@ import apiClient from '@/services/api';
 import { useRouter, useRoute } from 'vue-router';
 import Breadcrumb from '@/components/Breadcrumb.vue';
 import PageHeader from '@/components/PageHeader.vue';
+import AppInput from '@/components/AppInput.vue';
+import AppSelect from '@/components/AppSelect.vue';
+import AppButton from '@/components/AppButton.vue';
 import { useToasts } from '@/services/toast';
 
 const store = useEmployeStore();
@@ -119,6 +82,9 @@ const banques = computed(() => banqueStore.banques);
 
 const form = reactive({
   matricule: '',
+  num_lpm: '',
+  num_cnaps: '',
+  visa_contrat: '',
   nom: '',
   prenom: '',
   date_naissance: '',
@@ -137,6 +103,9 @@ const errors = reactive({});
 
 const mapEmploye = (data) => {
   form.matricule = data.matricule || '';
+  form.num_lpm = data.num_lpm || '';
+  form.num_cnaps = data.num_cnaps || '';
+  form.visa_contrat = data.visa_contrat || '';
   form.nom = data.nom || '';
   form.prenom = data.prenom || '';
   form.date_naissance = data.date_naissance ? String(data.date_naissance).slice(0, 10) : '';

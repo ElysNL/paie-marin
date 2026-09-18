@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class BulletinDelegation extends Model
 {
@@ -15,12 +16,12 @@ class BulletinDelegation extends Model
 
     protected $casts = ['montant' => 'decimal:2'];
 
-    public function bulletin()
+    public function bulletin(): BelongsTo
     {
         return $this->belongsTo(BulletinPaie::class, 'bulletin_id');
     }
 
-    public function delegation()
+    public function delegation(): BelongsTo
     {
         return $this->belongsTo(Delegation::class);
     }

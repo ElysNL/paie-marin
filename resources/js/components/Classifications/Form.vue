@@ -3,37 +3,35 @@
     <Breadcrumb :items="crumbs" />
     <PageHeader :title="headerTitle" />
     <form @submit.prevent="submit" class="space-y-4">
-      <div>
-        <label>Code</label>
-        <input v-model="form.code" required class="w-full border p-2 rounded" />
+      <AppInput v-model="form.code" label="Code" :error="errors.code" required />
+      <AppInput v-model="form.libelle" label="Libellé" :error="errors.libelle" required />
+      <div class="mb-4">
+        <label class="mb-1.5 block text-sm font-medium text-on-surface-variant">Description</label>
+        <textarea v-model="form.description" class="w-full rounded-xl border border-outline bg-surface-container px-4 py-3 text-on-surface outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"></textarea>
+        <p v-if="errors.description" class="mt-1.5 text-sm text-error">{{ errors.description[0] }}</p>
       </div>
-      <div>
-        <label>Libellé</label>
-        <input v-model="form.libelle" required class="w-full border p-2 rounded" />
-      </div>
-      <div>
-        <label>Description</label>
-        <textarea v-model="form.description" class="w-full border p-2 rounded"></textarea>
-      </div>
-      <div>
-        <label>Actif</label>
-        <input v-model="form.actif" type="checkbox" class="ml-2" />
+      <div class="mb-4">
+        <label class="inline-flex items-center gap-2 text-sm font-medium text-on-surface-variant">
+          <input v-model="form.actif" type="checkbox" class="h-4 w-4 rounded border-outline text-primary focus:ring-primary/20" /> Actif
+        </label>
       </div>
       <div class="flex gap-2">
-        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Enregistrer</button>
-        <button type="button" @click="$router.back()" class="px-4 py-2 border rounded">Annuler</button>
+        <AppButton type="submit">Enregistrer</AppButton>
+        <AppButton variant="secondary" type="button" @click="$router.back()">Annuler</AppButton>
       </div>
     </form>
   </div>
 </template>
 
 <script setup>
-import { reactive, computed, onMounted } from 'vue';
+import { reactive, ref, computed, onMounted } from 'vue';
 import { useClassificationStore } from '@/stores/classificationStore';
 import apiClient from '@/services/api';
 import { useRouter, useRoute } from 'vue-router';
 import Breadcrumb from '@/components/Breadcrumb.vue';
 import PageHeader from '@/components/PageHeader.vue';
+import AppInput from '@/components/AppInput.vue';
+import AppButton from '@/components/AppButton.vue';
 
 const store = useClassificationStore();
 const router = useRouter();
@@ -54,13 +52,22 @@ const form = reactive({
   actif: true,
 });
 
+const errors = ref({});
+
 const submit = async () => {
-  if (isEdit.value) {
-    await store.updateClassification(route.params.id, form);
-  } else {
-    await store.createClassification(form);
+  errors.value = {};
+  try {
+    if (isEdit.value) {
+      await store.updateClassification(route.params.id, form);
+    } else {
+      await store.createClassification(form);
+    }
+    router.push('/classifications');
+  } catch (e) {
+    if (e.response?.status === 422) {
+      errors.value = e.response.data.errors || {};
+    }
   }
-  router.push('/classifications');
 };
 
 onMounted(async () => {

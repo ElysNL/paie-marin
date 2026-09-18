@@ -3,49 +3,22 @@
     <Breadcrumb :items="crumbs" />
     <PageHeader :title="headerTitle" />
 
-    <div v-if="isEdit && locked" class="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
+    <div v-if="isEdit && locked" class="mb-4 rounded-xl border border-secondary-light/30 bg-secondary-light/5 p-3 text-sm text-secondary">
       Cette paie est déjà traitée : seuls le libellé et la période peuvent être modifiés.
     </div>
 
     <form @submit.prevent="submit" class="space-y-4">
-      <div>
-        <label for="num_paie" class="block mb-1 text-sm font-medium">N° de paie</label>
-        <input id="num_paie" v-model="form.num_paie" required
-               :disabled="isEdit && locked"
-               class="w-full border p-2 rounded disabled:bg-gray-100" />
-        <p v-if="errors.num_paie" class="text-sm text-red-600 mt-1">{{ errors.num_paie[0] }}</p>
-      </div>
-      <div>
-        <label for="libelle" class="block mb-1 text-sm font-medium">Libellé</label>
-        <input id="libelle" v-model="form.libelle" required class="w-full border p-2 rounded" />
-        <p v-if="errors.libelle" class="text-sm text-red-600 mt-1">{{ errors.libelle[0] }}</p>
-      </div>
-      <div>
-        <label for="periode" class="block mb-1 text-sm font-medium">Période</label>
-        <input id="periode" v-model="form.periode" placeholder="Ex : Août 2026"
-               required class="w-full border p-2 rounded" />
-        <p v-if="errors.periode" class="text-sm text-red-600 mt-1">{{ errors.periode[0] }}</p>
-      </div>
+      <AppInput v-model="form.num_paie" label="N° de paie" :error="errors.num_paie"
+        :disabled="isEdit && locked" required />
+      <AppInput v-model="form.libelle" label="Libellé" :error="errors.libelle" required />
+      <AppInput v-model="form.periode" label="Période" placeholder="Ex : Août 2026" :error="errors.periode" required />
       <div class="grid grid-cols-2 gap-4">
-        <div>
-          <label for="date_debut" class="block mb-1 text-sm font-medium">Date de début</label>
-          <input id="date_debut" v-model="form.date_debut" type="date" required class="w-full border p-2 rounded" />
-          <p v-if="errors.date_debut" class="text-sm text-red-600 mt-1">{{ errors.date_debut[0] }}</p>
-        </div>
-        <div>
-          <label for="date_fin" class="block mb-1 text-sm font-medium">Date de fin</label>
-          <input id="date_fin" v-model="form.date_fin" type="date" required class="w-full border p-2 rounded" />
-          <p v-if="errors.date_fin" class="text-sm text-red-600 mt-1">{{ errors.date_fin[0] }}</p>
-        </div>
+        <AppInput v-model="form.date_debut" label="Date de début" type="date" :error="errors.date_debut" required />
+        <AppInput v-model="form.date_fin" label="Date de fin" type="date" :error="errors.date_fin" required />
       </div>
-
       <div class="flex gap-2">
-        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
-          Enregistrer
-        </button>
-        <button type="button" @click="$router.back()" class="px-4 py-2 border rounded hover:bg-gray-50 transition">
-          Annuler
-        </button>
+        <AppButton type="submit">Enregistrer</AppButton>
+        <AppButton variant="secondary" type="button" @click="$router.back()">Annuler</AppButton>
       </div>
     </form>
   </div>
@@ -57,6 +30,8 @@ import { usePaieStore } from '@/stores/paieStore';
 import { useRouter, useRoute } from 'vue-router';
 import Breadcrumb from '@/components/Breadcrumb.vue';
 import PageHeader from '@/components/PageHeader.vue';
+import AppInput from '@/components/AppInput.vue';
+import AppButton from '@/components/AppButton.vue';
 import { useToasts } from '@/services/toast';
 
 const store = usePaieStore();

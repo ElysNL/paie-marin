@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
@@ -15,21 +17,42 @@ class AuthController extends Controller
     public function login(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required', 'string'],
+            'email' => 'required|email',
+            'password' => 'required',
         ]);
 
-        if (!Auth::guard('web')->attempt($request->only('email', 'password'), $request->boolean('remember'))) {
+        $user = User::where('email', $validated['email'])->first();
+
+        if ($user && $user->isLocked()) {
             return response()->json([
-                'message' => 'Ces identifiants ne correspondent à aucun compte.',
-                'errors' => ['email' => ['Ces identifiants ne correspondent à aucun compte.']],
-            ], 422);
+                'message' => 'Compte temporairement verrouillé. Réessayez dans ' . $user->locked_until->diffForHumans(),
+            ], 423);
         }
 
-        $request->session()->regenerate();
+        if (!$user || !Hash::check($validated['password'], $user->password)) {
+            if ($user) {
+                $attempts = $user->failed_login_attempts + 1;
+                $user->update([
+                    'failed_login_attempts' => $attempts,
+                    'locked_until' => $attempts >= 5 ? now()->addMinutes(15) : null,
+                ]);
+            }
+            return response()->json(['message' => 'Identifiants incorrects.'], 401);
+        }
+
+        $user->update([
+            'failed_login_attempts' => 0,
+            'locked_until' => null,
+        ]);
+
+        auth()->login($user);
+
+        // Stocker le hash du mot de passe en session pour détecter les changements
+        $request->session()->put('password_hash', $user->password);
 
         return response()->json([
-            'data' => ['user' => $request->user()],
+            'message' => 'Connexion réussie.',
+            'user' => $user,
         ]);
     }
 

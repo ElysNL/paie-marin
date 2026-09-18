@@ -18,7 +18,6 @@ export function formatDate(value) {
 export const statutBadge = {
     brouillon: 'bg-gray-200 text-gray-700',
     calcule: 'bg-blue-100 text-blue-700',
-    controle: 'bg-yellow-100 text-yellow-700',
     valide: 'bg-green-100 text-green-700',
     cloture: 'bg-purple-100 text-purple-700',
     en_cours: 'bg-blue-100 text-blue-700',
@@ -32,7 +31,6 @@ export const statutBadge = {
 export const statutLibelle = {
     brouillon: 'Brouillon',
     calcule: 'Calculée',
-    controle: 'Contrôle',
     valide: 'Validée',
     cloture: 'Clôturée',
     en_cours: 'En cours',

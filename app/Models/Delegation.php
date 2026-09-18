@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Delegation extends Model
 {
@@ -20,17 +22,17 @@ class Delegation extends Model
         'date_fin' => 'date',
     ];
 
-    public function employe()
+    public function employe(): BelongsTo
     {
         return $this->belongsTo(Employe::class);
     }
 
-    public function devise()
+    public function devise(): BelongsTo
     {
         return $this->belongsTo(Devise::class);
     }
 
-    public function bulletinsDelegations()
+    public function bulletinsDelegations(): HasMany
     {
         return $this->hasMany(BulletinDelegation::class);
     }

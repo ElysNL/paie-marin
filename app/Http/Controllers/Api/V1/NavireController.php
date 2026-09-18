@@ -3,62 +3,45 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreNavireRequest;
+use App\Http\Requests\UpdateNavireRequest;
+use App\Http\Resources\NavireResource;
 use App\Models\Navire;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Validation\Rule;
 
 class NavireController extends Controller
 {
-    public function index(): JsonResponse
+    public function index()
     {
         $navires = Navire::with(['armateur', 'compagnie', 'pavillon'])
                          ->paginate(50);
-        return response()->json($navires);
+        return NavireResource::collection($navires);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreNavireRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'armateur_id' => 'required|exists:armateurs,id',
-            'compagnie_id' => 'nullable|exists:compagnies,id',
-            'code' => 'required|string|max:20|unique:navires',
-            'nom' => 'required|string|max:100',
-            'immatriculation' => 'nullable|string|max:50',
-            'pavillon_id' => 'nullable|exists:pays,id',
-            'type' => 'nullable|string|max:50',
-            'actif' => 'sometimes|boolean',
-        ]);
-
-        $navire = Navire::create($validated);
+        $this->authorize('create', Navire::class);
+        $navire = Navire::create($request->validated());
         return response()->json($navire, 201);
     }
 
     public function show(Navire $navire): JsonResponse
     {
+        $this->authorize('view', $navire);
         $navire->load(['armateur', 'compagnie', 'pavillon', 'affectations.employe']);
         return response()->json($navire);
     }
 
-    public function update(Request $request, Navire $navire): JsonResponse
+    public function update(UpdateNavireRequest $request, Navire $navire): JsonResponse
     {
-        $validated = $request->validate([
-            'armateur_id' => 'required|exists:armateurs,id',
-            'compagnie_id' => 'nullable|exists:compagnies,id',
-            'code' => ['required', 'string', 'max:20', Rule::unique('navires')->ignore($navire->id)],
-            'nom' => 'required|string|max:100',
-            'immatriculation' => 'nullable|string|max:50',
-            'pavillon_id' => 'nullable|exists:pays,id',
-            'type' => 'nullable|string|max:50',
-            'actif' => 'sometimes|boolean',
-        ]);
-
-        $navire->update($validated);
+        $this->authorize('update', $navire);
+        $navire->update($request->validated());
         return response()->json($navire);
     }
 
     public function destroy(Navire $navire): JsonResponse
     {
+        $this->authorize('delete', $navire);
         $navire->delete();
         return response()->json(null, 204);
     }

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Paie extends Model
 {
@@ -11,7 +12,8 @@ class Paie extends Model
 
     protected $fillable = [
         'num_paie', 'libelle', 'periode', 'date_debut', 'date_fin',
-        'statut', 'date_validation', 'date_cloture'
+        'statut', 'date_validation', 'date_cloture',
+        'version', 'statut_calcul', 'resultat_calcul',
     ];
 
     protected $casts = [
@@ -19,9 +21,11 @@ class Paie extends Model
         'date_fin' => 'date',
         'date_validation' => 'date',
         'date_cloture' => 'date',
+        'version' => 'integer',
+        'resultat_calcul' => 'array',
     ];
 
-    public function bulletins()
+    public function bulletins(): HasMany
     {
         return $this->hasMany(BulletinPaie::class);
     }

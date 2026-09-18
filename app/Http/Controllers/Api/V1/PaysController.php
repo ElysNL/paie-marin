@@ -3,28 +3,24 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StorePaysRequest;
+use App\Http\Requests\UpdatePaysRequest;
+use App\Http\Resources\PaysResource;
 use App\Models\Pays;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
 class PaysController extends Controller
 {
-    public function index(): JsonResponse
+    public function index()
     {
         $pays = Pays::actif()->orderBy('nom')->get();
-        return response()->json($pays);
+        return PaysResource::collection($pays);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StorePaysRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'code' => 'required|string|size:3|unique:pays',
-            'nom' => 'required|string|max:100',
-            'nationalite' => 'nullable|string|max:100',
-            'actif' => 'sometimes|boolean',
-        ]);
-
-        $pays = Pays::create($validated);
+        $this->authorize('create', [Pays::class]);
+        $pays = Pays::create($request->validated());
         return response()->json($pays, 201);
     }
 
@@ -33,21 +29,16 @@ class PaysController extends Controller
         return response()->json($pays);
     }
 
-    public function update(Request $request, Pays $pays): JsonResponse
+    public function update(UpdatePaysRequest $request, Pays $pays): JsonResponse
     {
-        $validated = $request->validate([
-            'code' => 'required|string|size:3|unique:pays,code,' . $pays->id,
-            'nom' => 'required|string|max:100',
-            'nationalite' => 'nullable|string|max:100',
-            'actif' => 'sometimes|boolean',
-        ]);
-
-        $pays->update($validated);
+        $this->authorize('update', [$pays]);
+        $pays->update($request->validated());
         return response()->json($pays);
     }
 
     public function destroy(Pays $pays): JsonResponse
     {
+        $this->authorize('delete', [$pays]);
         $pays->delete();
         return response()->json(null, 204);
     }

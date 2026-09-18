@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class BulletinCotisation extends Model
 {
@@ -25,12 +26,12 @@ class BulletinCotisation extends Model
         'montant_patronal' => 'decimal:2',
     ];
 
-    public function bulletin()
+    public function bulletin(): BelongsTo
     {
         return $this->belongsTo(BulletinPaie::class, 'bulletin_id');
     }
 
-    public function cotisation()
+    public function cotisation(): BelongsTo
     {
         return $this->belongsTo(Cotisation::class);
     }
