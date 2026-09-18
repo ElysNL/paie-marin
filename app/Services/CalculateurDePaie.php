@@ -30,6 +30,8 @@ class CalculateurDePaie
 
             // 5. Retirer les cotisations salariales
             // 6. BRUT = somme des gains (base + suppléments)
+            // Invalider la relation en mémoire pour forcer le rechargement depuis la DB
+            $bulletin->unsetRelation('elements');
             $bulletin->load('elements.elemPaie');
             $brut = $bulletin->elements->where('elemPaie.type', 'GAIN')->sum('montant');
             $bulletin->total_gains = $brut;
@@ -59,6 +61,9 @@ class CalculateurDePaie
             }
 
             // Total retenues = cotisations salariales + IGR net + délégations / retenues saisies
+            // Recharger après ajout IGR + délégations pour inclure toutes les retenues
+            $bulletin->unsetRelation('elements');
+            $bulletin->load('elements.elemPaie');
             $totalRetenues = $bulletin->elements->where('elemPaie.type', 'RETENUE')->sum('montant')
                              + $bulletin->total_cotisations_salariales;
             $bulletin->total_retenues = $totalRetenues;
