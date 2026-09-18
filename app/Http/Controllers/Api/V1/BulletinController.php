@@ -53,6 +53,11 @@ class BulletinController extends Controller
     public function destroy(BulletinPaie $bulletin): JsonResponse
     {
         $this->authorize('delete', $bulletin);
+
+        if (!$bulletin->paie) {
+            return response()->json(['message' => 'Bulletin orphelin (paie introuvable).'], 422);
+        }
+
         if (!in_array($bulletin->paie->statut, ['brouillon', 'calcule'])) {
             return response()->json(['message' => 'Impossible de supprimer un bulletin d\'une paie validée ou clôturée.'], 422);
         }
