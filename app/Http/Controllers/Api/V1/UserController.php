@@ -15,6 +15,7 @@ class UserController extends Controller
 {
     public function index(Request $request)
     {
+        $this->authorize('viewAny', User::class);
         $query = User::query();
 
         if ($request->has('role')) {
@@ -36,6 +37,7 @@ class UserController extends Controller
 
     public function store(StoreUserRequest $request): JsonResponse
     {
+        $this->authorize('create', User::class);
         $validated = $request->validated();
         // Le cast 'hashed' sur User applique Hash::make() automatiquement
         $validated['email_verified_at'] = now();
@@ -47,11 +49,13 @@ class UserController extends Controller
 
     public function show(User $user): JsonResponse
     {
+        $this->authorize('view', $user);
         return response()->json(new UserResource($user));
     }
 
     public function update(UpdateUserRequest $request, User $user): JsonResponse
     {
+        $this->authorize('update', $user);
         $validated = $request->validated();
 
         if (!empty($validated['password'])) {
@@ -67,23 +71,15 @@ class UserController extends Controller
 
     public function destroy(User $user): JsonResponse
     {
-        if ($user->id === auth()->id()) {
-            return response()->json(['message' => 'Vous ne pouvez pas supprimer votre propre compte.'], 422);
-        }
-
+        $this->authorize('delete', $user);
         $user->delete();
-
         return response()->json(null, 204);
     }
 
     public function toggleActif(User $user): JsonResponse
     {
-        if ($user->id === auth()->id()) {
-            return response()->json(['message' => 'Vous ne pouvez pas désactiver votre propre compte.'], 422);
-        }
-
+        $this->authorize('toggleActif', $user);
         $user->update(['actif' => !$user->actif]);
-
         return response()->json(new UserResource($user->fresh()));
     }
 }
