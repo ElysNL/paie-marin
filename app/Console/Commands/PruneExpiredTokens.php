@@ -24,10 +24,11 @@ class PruneExpiredTokens extends Command
         $this->info("Sessions orphelines supprimées : {$orphanSessions}");
 
         // 2. Sessions expirées (> 2h sans activité)
+        // La table 'sessions' stocke last_activity comme Unix timestamp (int).
         $expiredSessions = DB::table('sessions')
-            ->where('last_activity', '<', now()->subMinutes(
+            ->where('last_activity', '<', (int) now()->subMinutes(
                 (int) config('session.lifetime', 120)
-            )->timestamp)
+            )->getTimestamp())
             ->delete();
         $total += $expiredSessions;
         $this->info("Sessions expirées supprimées : {$expiredSessions}");
