@@ -54,8 +54,8 @@ export const usePaieStore = defineStore('paies', {
         },
         async createPaie(data) {
             const response = await apiClient.post('/paies', data);
-            this.paies.unshift(response.data);
-            return response.data;
+            this.paies.unshift(response.data.data);
+            return response.data.data;
         },
         async updatePaie(id, data) {
             const response = await apiClient.put(`/paies/${id}`, data);
