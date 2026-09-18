@@ -31,11 +31,10 @@ class AuthController extends Controller
 
         if (!$user || !Hash::check($validated['password'], $user->password)) {
             if ($user) {
-                $attempts = $user->failed_login_attempts + 1;
-                $user->update([
-                    'failed_login_attempts' => $attempts,
-                    'locked_until' => $attempts >= 5 ? now()->addMinutes(15) : null,
-                ]);
+                $attempts = $user->increment('failed_login_attempts');
+                if ($attempts >= 5) {
+                    $user->update(['locked_until' => now()->addMinutes(15)]);
+                }
             }
             return response()->json(['message' => 'Identifiants incorrects.'], 401);
         }
