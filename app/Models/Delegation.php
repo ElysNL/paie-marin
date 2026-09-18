@@ -4,13 +4,15 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Delegation extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'employer_id', 'beneficiaire', 'montant', 'devise_id',
+        'employe_id', 'beneficiaire', 'montant', 'devise_id',
         'date_debut', 'date_fin', 'frequence', 'statut'
     ];
 
@@ -20,17 +22,17 @@ class Delegation extends Model
         'date_fin' => 'date',
     ];
 
-    public function employer()
+    public function employe(): BelongsTo
     {
         return $this->belongsTo(Employe::class);
     }
 
-    public function devise()
+    public function devise(): BelongsTo
     {
         return $this->belongsTo(Devise::class);
     }
 
-    public function bulletinsDelegations()
+    public function bulletinsDelegations(): HasMany
     {
         return $this->hasMany(BulletinDelegation::class);
     }

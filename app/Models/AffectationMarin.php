@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class AffectationMarin extends Model
 {
@@ -22,32 +24,32 @@ class AffectationMarin extends Model
         'taux_journalier' => 'decimal:2',
     ];
 
-    public function employe()
+    public function employe(): BelongsTo
     {
         return $this->belongsTo(Employe::class);
     }
 
-    public function navire()
+    public function navire(): BelongsTo
     {
         return $this->belongsTo(Navire::class);
     }
 
-    public function fonction()
+    public function fonction(): BelongsTo
     {
         return $this->belongsTo(Fonction::class);
     }
 
-    public function contratArmateur()
+    public function contratArmateur(): BelongsTo
     {
         return $this->belongsTo(ContratArmateur::class);
     }
 
-    public function devise()
+    public function devise(): BelongsTo
     {
         return $this->belongsTo(Devise::class);
     }
 
-    public function bulletins()
+    public function bulletins(): HasMany
     {
         return $this->hasMany(BulletinPaie::class);
     }

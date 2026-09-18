@@ -9,6 +9,8 @@ class SpecificiteArmateur extends Model
 {
     use HasFactory;
 
+    protected $table = 'specificites_armateur';
+
     protected $fillable = ['armateur_id', 'cle', 'valeur'];
 
     public function armateur()

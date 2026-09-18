@@ -19,7 +19,7 @@ return new class extends Migration
             $table->foreignId('devise_id')->constrained('devises')->restrictOnDelete();
             $table->date('date_debut');
             $table->date('date_fin')->nullable();
-            $table->string('frequence', 20)->default('mensuelle');
+            $table->string('frequence', 20)->default('mensuel');
             $table->enum('statut', ['actif', 'termine', 'annule'])->default('actif');
             $table->timestamps();
         });
@@ -30,6 +30,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('delegation');
+        Schema::dropIfExists('delegations');
     }
 };

@@ -4,12 +4,14 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Avance extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['employer_id', 'date_avance', 'montant', 'devise_id', 'motif', 'statut', 'solde'];
+    protected $fillable = ['employe_id', 'date_avance', 'montant', 'devise_id', 'motif', 'statut', 'solde'];
 
     protected $casts = [
         'date_avance' => 'date',
@@ -17,17 +19,17 @@ class Avance extends Model
         'solde' => 'decimal:2',
     ];
 
-    public function employer()
+    public function employe(): BelongsTo
     {
         return $this->belongsTo(Employe::class);
     }
 
-    public function devise()
+    public function devise(): BelongsTo
     {
         return $this->belongsTo(Devise::class);
     }
 
-    public function remboursements()
+    public function remboursements(): HasMany
     {
         return $this->hasMany(RemboursementAvance::class);
     }

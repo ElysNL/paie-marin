@@ -4,10 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class BulletinJour extends Model
 {
     use HasFactory;
+
+    protected $table = 'bulletins_jour';
 
     protected $fillable = ['bulletin_id', 'date', 'type_jour', 'nombre', 'taux', 'montant'];
 
@@ -18,8 +21,8 @@ class BulletinJour extends Model
         'montant' => 'decimal:2',
     ];
 
-    public function bulletin()
+    public function bulletin(): BelongsTo
     {
-        return $this->belongsTo(BulletinPaie::class);
+        return $this->belongsTo(BulletinPaie::class, 'bulletin_id');
     }
 }

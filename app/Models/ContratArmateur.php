@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ContratArmateur extends Model
 {
@@ -21,17 +23,17 @@ class ContratArmateur extends Model
         'taux_base' => 'decimal:2',
     ];
 
-    public function armateur()
+    public function armateur(): BelongsTo
     {
         return $this->belongsTo(Armateur::class);
     }
 
-    public function devise()
+    public function devise(): BelongsTo
     {
         return $this->belongsTo(Devise::class);
     }
 
-    public function affectations()
+    public function affectations(): HasMany
     {
         return $this->hasMany(AffectationMarin::class);
     }

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Fonction extends Model
 {
@@ -13,8 +14,14 @@ class Fonction extends Model
 
     protected $casts = ['actif' => 'boolean'];
 
-    public function affectations()
+    public function affectations(): HasMany
     {
         return $this->hasMany(AffectationMarin::class);
+    }
+
+    // Scope
+    public function scopeActif($query)
+    {
+        return $query->where('actif', true);
     }
 }
