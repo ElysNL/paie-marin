@@ -251,18 +251,31 @@ class CalculateurDePaie
         $devisePaiement = Devise::where('code', config('paie.devise_paiement', 'MGA'))->first();
         if (!$devisePaiement) return;
 
+        // Si la devise source est déjà la devise de paiement, pas besoin de taux
+        if ($affectation->devise_id === $devisePaiement->id) {
+            $bulletin->devise_source_id = $affectation->devise_id;
+            $bulletin->devise_paiement_id = $devisePaiement->id;
+            return;
+        }
+
         $tauxChange = TauxChange::where('devise_source_id', $affectation->devise_id)
             ->where('devise_cible_id', $devisePaiement->id)
             ->where('date_taux', '<=', $paie->date_fin)
             ->orderBy('date_taux', 'desc')
             ->first();
 
-        if ($tauxChange) {
-            $bulletin->taux_change = $tauxChange->taux;
-            $bulletin->date_taux_change = $tauxChange->date_taux;
-            $bulletin->source_taux_change = $tauxChange->source;
-            $bulletin->devise_source_id = $affectation->devise_id;
-            $bulletin->devise_paiement_id = $devisePaiement->id;
+        if (!$tauxChange) {
+            throw new \RuntimeException(
+                "Aucun taux de change trouvé pour la paire "
+                . $affectation->devise_id . " → " . $devisePaiement->id
+                . " (date fin période : {$paie->date_fin})"
+            );
         }
+
+        $bulletin->taux_change = $tauxChange->taux;
+        $bulletin->date_taux_change = $tauxChange->date_taux;
+        $bulletin->source_taux_change = $tauxChange->source;
+        $bulletin->devise_source_id = $affectation->devise_id;
+        $bulletin->devise_paiement_id = $devisePaiement->id;
     }
 }
