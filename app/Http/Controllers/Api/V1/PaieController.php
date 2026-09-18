@@ -135,7 +135,10 @@ class PaieController extends Controller
             'date_validation' => now(),
         ]);
 
-        return response()->json(['message' => 'Paie validée avec succès.', 'paie' => $paie]);
+        return response()->json([
+            'message' => 'Paie validée avec succès.',
+            'data' => new PaieResource($paie->fresh()),
+        ]);
     }
 
     public function cloturer(Paie $paie): JsonResponse
@@ -147,6 +150,9 @@ class PaieController extends Controller
             'date_cloture' => now(),
         ]);
 
-        return response()->json(['message' => 'Paie clôturée avec succès.', 'paie' => $paie]);
+        return response()->json([
+            'message' => 'Paie clôturée avec succès.',
+            'data' => new PaieResource($paie->fresh()),
+        ]);
     }
 }
